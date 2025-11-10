@@ -15,21 +15,39 @@ use App\Models\InventoryMovement;
 class CajaController extends Controller
 {
     /** Vista principal de la caja. */
-    public function index()
-    {
-      $products = Product::select('id','name','price','image_path')
+public function index()
+{
+    // ✅ OBTENER PRODUCTOS ORDENADOS POR MÁS VENDIDOS DEL MES ACTUAL
+    // Compatible con SQLite
+    $mesActual = now()->format('Y-m');  // Ejemplo: "2025-11"
+    
+    $products = Product::select(
+            'products.id',
+            'products.name',
+            'products.price',
+            'products.image_path',
+            'products.category'
+        )
+        ->leftJoin('sale_items', function($join) use ($mesActual) {
+            $join->on('sale_items.product_id', '=', 'products.id')
+                 // Solo contar ventas del mes actual (compatible con SQLite)
+                 ->where('sale_items.created_at', '>=', $mesActual . '-01 00:00:00')
+                 ->where('sale_items.created_at', '<', now()->addMonth()->startOfMonth()->format('Y-m-d H:i:s'));
+        })
+        ->selectRaw('COALESCE(SUM(sale_items.qty), 0) as total_vendido')
+        ->groupBy('products.id', 'products.name', 'products.price', 'products.image_path', 'products.category')
+        ->orderByDesc('total_vendido')  // Los más vendidos primero
+        ->orderBy('products.name')       // Desempate por nombre
+        ->get();
 
-            ->orderBy('name')
-            ->get();
+    $categories = Product::select('category')
+        ->distinct()
+        ->pluck('category')
+        ->filter()
+        ->values();
 
-        $categories = Product::select('category')
-            ->distinct()
-            ->pluck('category')
-            ->filter()
-            ->values();
-
-        return view('caja.index', compact('products','categories'));
-    }
+    return view('caja.index', compact('products','categories'));
+}
 
     /** Búsqueda por código de barras. */
     public function barcode(string $code)

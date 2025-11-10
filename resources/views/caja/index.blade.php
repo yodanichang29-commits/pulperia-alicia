@@ -582,6 +582,16 @@
               @click="add({ id: {{ $p->id }}, name: @js($p->name), price: {{ $p->price }}, cat: @js($p->category) })"
               x-show="showProduct(@js($p->category), @js($p->name))"
               class="relative group rounded-2xl bg-white border border-gray-200 hover:border-blue-400 overflow-hidden text-left shadow hover:shadow-lg transition">
+
+
+{{-- ✅ ETIQUETA DE MÁS VENDIDO (solo para los top 3) --}}
+    @if($loop->iteration <= 3 && isset($p->total_vendido) && $p->total_vendido > 0)
+      <div class="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+        <span>🔥</span>
+        <span>#{{ $loop->iteration }}</span>
+      </div>
+    @endif
+
               <div class="relative rounded-2xl overflow-hidden bg-white grid place-items-center">
                 <div class="w-full h-40 md:h-44 p-2">
                   <img
