@@ -109,6 +109,19 @@ class CajaController extends Controller
         if ($qty <= 0)   abort(422, "Cantidad inválida para {$p->name}.");
         if ($price <= 0) abort(422, "Precio inválido para {$p->name}.");
 
+
+
+        // ✅ VALIDACIÓN DE FECHA DE VENCIMIENTO
+       // ✅ VALIDACIÓN DE FECHA DE VENCIMIENTO
+        if ($p->expires_at) {
+            $today = now()->startOfDay();
+            $expiresAt = \Carbon\Carbon::parse($p->expires_at)->startOfDay();
+            
+            if ($expiresAt->lessThan($today)) {
+                abort(422, "PRODUCTO_VENCIDO|{$p->name}|{$expiresAt->format('d/m/Y')}");
+            }
+        }
+
         // STOCK entero (unidades). Si quisieras permitir decimales, quita el ceil().
         $qtyUnits = (int)ceil($qty);
 

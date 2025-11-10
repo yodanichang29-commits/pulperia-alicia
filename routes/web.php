@@ -256,6 +256,32 @@ Route::middleware('auth')
     ->middleware('auth');
 
 
+
+
+
+// ✅ Ruta para validar si un producto está vencido
+Route::get('/api/products/{product}/check-expiry', function (\App\Models\Product $product) {
+    $today = now()->startOfDay();
+    $expired = false;
+    
+    if ($product->expires_at) {
+        $expiresAt = \Carbon\Carbon::parse($product->expires_at)->startOfDay();
+        $expired = $expiresAt->lessThan($today);
+    }
+    
+    return response()->json([
+        'id' => $product->id,
+        'name' => $product->name,
+        'expires_at' => $product->expires_at ? \Carbon\Carbon::parse($product->expires_at)->format('d/m/Y') : null,
+        'expired' => $expired
+    ]);
+});
+
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | AUTH

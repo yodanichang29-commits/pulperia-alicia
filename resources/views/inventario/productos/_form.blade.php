@@ -117,7 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <label class="block text-sm font-medium text-gray-700">Stock</label>
     <input name="stock" type="number" min="0" required
            value="{{ old('stock', $product->stock) }}"
-           class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+           {{ $product->exists ? 'readonly' : '' }}
+           class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 {{ $product->exists ? 'bg-gray-100 cursor-not-allowed' : '' }}">
+    @if($product->exists)
+      <p class="text-xs text-gray-500 mt-1">El stock solo se modifica con movimientos de inventario o ventas</p>
+    @endif
     @error('stock')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
   </div>
 

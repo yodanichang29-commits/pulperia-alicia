@@ -1,4 +1,7 @@
 <x-app-layout>
+  {{-- ✅ SweetAlert2 para notificaciones bonitas --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   {{-- Evitar parpadeos hasta que Alpine cargue --}}
   <style>[x-cloak]{display:none!important}</style>
 
@@ -1071,11 +1074,43 @@
         openCash: false,
         cashGiven: 0,
         cashQuick: [10,20,50,100,200,500],
-        openCashModal(){
-          this.cashGiven = this.grandTotal();
-          this.openCash = true;
-          this.$nextTick(()=> this.$refs.cashInput?.focus());
-        },
+        async openCashModal(){
+  // ✅ VALIDAR PRODUCTOS VENCIDOS ANTES DE ABRIR EL MODAL
+  const expiredCheck = await this.checkExpiredProducts();
+  if (!expiredCheck.success) {
+    Swal.fire({
+      icon: 'error',
+      title: '⚠️ Producto Vencido',
+      html: `
+        <div style="text-align: left; padding: 10px;">
+          <p style="font-size: 16px; margin-bottom: 10px;">
+            <strong>El siguiente producto está vencido:</strong>
+          </p>
+          <div style="background: #fee; border-left: 4px solid #f00; padding: 15px; border-radius: 5px;">
+            <p style="font-size: 18px; font-weight: bold; color: #d00; margin-bottom: 5px;">
+              📦 ${expiredCheck.productName}
+            </p>
+            <p style="font-size: 14px; color: #666;">
+              🗓️ Fecha de vencimiento: <strong>${expiredCheck.expiryDate}</strong>
+            </p>
+          </div>
+          <p style="font-size: 14px; color: #666; margin-top: 15px;">
+            ❌ <strong>No se puede vender este producto.</strong> Por favor, retíralo del carrito.
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#dc2626',
+      width: '500px'
+    });
+    return; // NO ABRIR EL MODAL
+  }
+
+  // Si todo está bien, abrir el modal normalmente
+  this.cashGiven = this.grandTotal();
+  this.openCash = true;
+  this.$nextTick(()=> this.$refs.cashInput?.focus());
+},
         closeCash(){ this.openCash = false; },
         cashChange(){ return +(Number(this.cashGiven||0) - this.grandTotal()).toFixed(2); },
         roundToBill(total){
@@ -1228,6 +1263,40 @@
           if (!cj.shift) { alert('Debes abrir un turno antes de vender.'); return; }
 
           if(!this.cart.length) return;
+
+
+// ✅ VALIDAR PRODUCTOS VENCIDOS ANTES DE CONTINUAR
+  const expiredCheck = await this.checkExpiredProducts();
+  if (!expiredCheck.success) {
+    Swal.fire({
+      icon: 'error',
+      title: '⚠️ Producto Vencido',
+      html: `
+        <div style="text-align: left; padding: 10px;">
+          <p style="font-size: 16px; margin-bottom: 10px;">
+            <strong>El siguiente producto está vencido:</strong>
+          </p>
+          <div style="background: #fee; border-left: 4px solid #f00; padding: 15px; border-radius: 5px;">
+            <p style="font-size: 18px; font-weight: bold; color: #d00; margin-bottom: 5px;">
+              📦 ${expiredCheck.productName}
+            </p>
+            <p style="font-size: 14px; color: #666;">
+              🗓️ Fecha de vencimiento: <strong>${expiredCheck.expiryDate}</strong>
+            </p>
+          </div>
+          <p style="font-size: 14px; color: #666; margin-top: 15px;">
+            ❌ <strong>No se puede vender este producto.</strong> Por favor, retíralo del carrito.
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#dc2626',
+      width: '500px'
+    });
+    return; // Detener el proceso
+  }
+
+
           if(this.payment==='credit' && !this.client){
             alert('Selecciona o crea un cliente para ventas a crédito.');
             return;
@@ -1258,15 +1327,58 @@
               body: JSON.stringify(body)
             });
 
-            if (!r.ok) {
-              let msg = 'No se pudo registrar la venta.';
-              try {
-                const err = await r.json();
-                if (err?.message) msg = err.message;
-              } catch {}
-              alert(msg);
-              return;
-            }
+          if (!r.ok) {
+  let msg = 'No se pudo registrar la venta.';
+  try {
+    const err = await r.json();
+    if (err?.message) {
+      msg = err.message;
+      
+      // ✅ Detectar si es un error de producto vencido
+      if (msg.includes('PRODUCTO_VENCIDO')) {
+        const parts = msg.split('|');
+        const productName = parts[1] || 'Producto';
+        const expiryDate = parts[2] || 'Fecha desconocida';
+        
+        Swal.fire({
+          icon: 'error',
+          title: '⚠️ Producto Vencido',
+          html: `
+            <div style="text-align: left; padding: 10px;">
+              <p style="font-size: 16px; margin-bottom: 10px;">
+                <strong>El siguiente producto está vencido:</strong>
+              </p>
+              <div style="background: #fee; border-left: 4px solid #f00; padding: 15px; border-radius: 5px;">
+                <p style="font-size: 18px; font-weight: bold; color: #d00; margin-bottom: 5px;">
+                  📦 ${productName}
+                </p>
+                <p style="font-size: 14px; color: #666;">
+                  🗓️ Fecha de vencimiento: <strong>${expiryDate}</strong>
+                </p>
+              </div>
+              <p style="font-size: 14px; color: #666; margin-top: 15px;">
+                ❌ <strong>No se puede vender este producto.</strong> Por favor, retíralo del carrito.
+              </p>
+            </div>
+          `,
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#dc2626',
+          width: '500px'
+        });
+        return;
+      }
+    }
+  } catch {}
+  
+  // Error genérico
+  Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text: msg,
+    confirmButtonColor: '#dc2626'
+  });
+  return;
+}
 
             window.dispatchEvent(new CustomEvent('sale:registered', {
               detail: { total: this.grandTotal(), payment: this.payment }
@@ -1440,6 +1552,35 @@ async retrievePendingSale(id){
             return null;
           }
         }
+
+
+
+,
+
+// ✅ FUNCIÓN PARA VALIDAR PRODUCTOS VENCIDOS
+async checkExpiredProducts() {
+  for (const item of this.cart) {
+    try {
+      const response = await fetch(`/api/products/${item.id}/check-expiry`);
+      const data = await response.json();
+      
+      if (data.expired) {
+        return {
+          success: false,
+          productName: data.name,
+          expiryDate: data.expires_at
+        };
+      }
+    } catch (error) {
+      console.error('Error checking product expiry:', error);
+    }
+  }
+  
+  return { success: true };
+}
+
+
+
       };
     }
   </script>
