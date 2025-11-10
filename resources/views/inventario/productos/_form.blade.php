@@ -65,23 +65,31 @@ document.addEventListener('DOMContentLoaded', () => {
     @error('barcode')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
   </div>
 
-
-
-
+  {{-- 👈 MODIFICADO: Agregamos ID para controlarlo con JavaScript --}}
   <div>
     <label class="block text-sm font-medium text-gray-700">Precio venta</label>
-    <input name="price" type="number" step="0.01" min="0" required
+    <input id="precio-venta" name="price" type="number" step="0.01" min="0" required
            value="{{ old('price', $product->price) }}"
            class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
     @error('price')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
   </div>
 
+  {{-- 👈 MODIFICADO: Agregamos ID para controlarlo con JavaScript --}}
   <div>
     <label class="block text-sm font-medium text-gray-700">Costo compra</label>
-    <input name="purchase_price" type="number" step="0.01" min="0"
+    <input id="costo-compra" name="purchase_price" type="number" step="0.01" min="0"
            value="{{ old('purchase_price', $product->purchase_price) }}"
            class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" required>
     @error('purchase_price')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+  </div>
+
+  {{-- 👈 NUEVO: Campo de Margen Comercial % --}}
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Margen Comercial %</label>
+    <input id="margen-comercial" type="number" step="0.01" min="0"
+           class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+           placeholder="Ej: 20 (significa 20% sobre el costo)">
+    <p class="text-xs text-gray-500 mt-1">Cuánto % le subes al costo de compra</p>
   </div>
 
   <div>
@@ -136,9 +144,87 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
-<div class="mt-6 flex items-center gap-3">
-  <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+<div class="flex gap-3 mt-6">
+  <button type="submit"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
     {{ $btn ?? 'Guardar' }}
   </button>
-  <a href="{{ route('inventario.index') }}" class="text-sm text-gray-600 hover:text-gray-900">Cancelar</a>
+  <a href="{{ route('inventario.index') }}"
+     class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+    Cancelar
+  </a>
 </div>
+
+{{-- 👈 NUEVO: JavaScript para calcular automáticamente --}}
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtenemos los 3 campos importantes
+    const precioVenta = document.getElementById('precio-venta');
+    const costoCompra = document.getElementById('costo-compra');
+    const margenComercial = document.getElementById('margen-comercial');
+
+    // Variable para evitar bucles infinitos
+    let calculando = false;
+
+    // Función para calcular el margen % cuando cambia el precio
+    function calcularMargenPorcentaje() {
+        if (calculando) return; // Si ya estamos calculando, no hacer nada
+        
+        const costo = parseFloat(costoCompra.value) || 0;
+        const precio = parseFloat(precioVenta.value) || 0;
+
+        // Si el costo es 0, no podemos calcular el margen
+        if (costo === 0) {
+            margenComercial.value = '';
+            return;
+        }
+
+        // Fórmula: Margen% = ((Precio - Costo) / Costo) × 100
+        const margen = ((precio - costo) / costo) * 100;
+        
+        calculando = true;
+        margenComercial.value = margen.toFixed(2); // Redondeamos a 2 decimales
+        calculando = false;
+    }
+
+    // Función para calcular el precio cuando cambia el margen %
+    function calcularPrecioVenta() {
+        if (calculando) return; // Si ya estamos calculando, no hacer nada
+        
+        const costo = parseFloat(costoCompra.value) || 0;
+        const margen = parseFloat(margenComercial.value) || 0;
+
+        // Fórmula: Precio = Costo × (1 + Margen%/100)
+        const precio = costo * (1 + margen / 100);
+        
+        calculando = true;
+        precioVenta.value = precio.toFixed(2); // Redondeamos a 2 decimales
+        calculando = false;
+    }
+
+    // Cuando carga la página, calculamos el margen inicial
+    if (precioVenta.value && costoCompra.value) {
+        calcularMargenPorcentaje();
+    }
+
+    // Escuchamos cambios en el PRECIO DE VENTA
+    precioVenta.addEventListener('input', calcularMargenPorcentaje);
+
+    // Escuchamos cambios en el COSTO DE COMPRA
+    // (puede afectar tanto el margen como el precio)
+    costoCompra.addEventListener('input', function() {
+        // Si ya hay un margen definido, recalculamos el precio
+        if (margenComercial.value) {
+            calcularPrecioVenta();
+        } else {
+            // Si no hay margen, recalculamos el margen basado en el precio actual
+            calcularMargenPorcentaje();
+        }
+    });
+
+    // Escuchamos cambios en el MARGEN COMERCIAL %
+    margenComercial.addEventListener('input', calcularPrecioVenta);
+});
+</script>
+@endpush

@@ -4,6 +4,7 @@ $tabs = [
   ['label' => '🏷️ Por proveedor',      'route' => 'reportes.ventas.proveedores'],
   ['label' => '🧾 Ventas por producto', 'route' => 'reportes.ventas.producto'],
   ['label' => '🧍 Detalle',             'route' => 'reportes.ventas.detalle'], // si aplica
+  ['label' => '🕐 Turnos',             'route' => 'reportes.ventas.turnos'],
 ];
 
 $sticky = $sticky ?? true; // <- permite desactivar sticky desde el include

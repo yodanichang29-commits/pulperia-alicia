@@ -777,5 +777,201 @@ public function exportExcel(Request $request)
 
 
 
+/**
+ * Reporte de turnos
+ * URL: /reportes/ventas/turnos
+ */
+public function turnos(Request $request)
+{
+    // Obtener filtros de fecha (por defecto: mes actual)
+    $desde = $request->input('desde') ?: now()->startOfMonth()->format('Y-m-d');
+    $hasta = $request->input('hasta') ?: now()->endOfMonth()->format('Y-m-d');
+
+    // Consultar turnos CERRADOS en el rango de fechas
+    $turnos = DB::table('cash_shifts as cs')
+        ->leftJoin('users as u', 'u.id', '=', 'cs.user_id')
+        ->whereNotNull('cs.closed_at') // Solo turnos cerrados
+        ->whereDate('cs.closed_at', '>=', $desde)
+        ->whereDate('cs.closed_at', '<=', $hasta)
+        ->select([
+            'cs.id',
+            'cs.opened_at',
+            'cs.closed_at',
+            'cs.opening_float',
+            'cs.closing_cash_count',
+            'cs.expected_cash',
+            'cs.difference',
+            'cs.notes',
+            'u.name as usuario'
+        ])
+        ->orderBy('cs.closed_at', 'desc')
+        ->get();
+
+    // Calcular totales generales
+    $totales = [
+        'turnos'             => $turnos->count(),
+        'opening_float'      => $turnos->sum('opening_float'),
+        'expected_cash'      => $turnos->sum('expected_cash'),
+        'closing_cash_count' => $turnos->sum('closing_cash_count'),
+        'difference'         => $turnos->sum('difference'),
+    ];
+
+    return view('reportes.ventas.turnos', compact('turnos', 'totales', 'desde', 'hasta'));
+}
+
+
+
+
+
+
+
+
+/**
+ * Detalle de un turno específico
+ * URL: /reportes/ventas/turnos/{id}
+ */
+public function turnoDetalle(Request $request, $id)
+{
+    // Buscar el turno
+    $turno = DB::table('cash_shifts as cs')
+        ->leftJoin('users as u', 'u.id', '=', 'cs.user_id')
+        ->where('cs.id', $id)
+        ->select([
+            'cs.id',
+            'cs.opened_at',
+            'cs.closed_at',
+            'cs.opening_float',
+            'cs.closing_cash_count',
+            'cs.expected_cash',
+            'cs.difference',
+            'cs.notes',
+            'u.name as usuario'
+        ])
+        ->first();
+
+    // Si no existe el turno, redirigir
+    if (!$turno) {
+        return redirect()->route('reportes.ventas.turnos')
+            ->with('error', 'Turno no encontrado');
+    }
+
+    // 1. VENTAS por método de pago (solo del turno)
+    $ventasPorMetodo = DB::table('sales')
+        ->where('cash_shift_id', $id)
+        ->selectRaw('
+            payment as metodo,
+            COUNT(*) as cantidad_ventas,
+            SUM(total) as total_vendido
+        ')
+        ->groupBy('payment')
+        ->get()
+        ->keyBy('metodo');
+
+    // Preparar array con todos los métodos
+    $metodos = [
+        'cash'     => ['label' => 'Efectivo',       'cantidad' => 0, 'total' => 0],
+        'card'     => ['label' => 'Tarjeta',        'cantidad' => 0, 'total' => 0],
+        'transfer' => ['label' => 'Transferencia',  'cantidad' => 0, 'total' => 0],
+        'credit'   => ['label' => 'Crédito',        'cantidad' => 0, 'total' => 0],
+    ];
+
+    foreach ($ventasPorMetodo as $metodo => $data) {
+        if (isset($metodos[$metodo])) {
+            $metodos[$metodo]['cantidad'] = $data->cantidad_ventas;
+            $metodos[$metodo]['total'] = $data->total_vendido;
+        }
+    }
+
+    // 2. TOTAL de ventas y unidades vendidas
+    $totalVentas = DB::table('sales')
+        ->where('cash_shift_id', $id)
+        ->count();
+
+    $totalUnidades = DB::table('sale_items as si')
+        ->join('sales as s', 's.id', '=', 'si.sale_id')
+        ->where('s.cash_shift_id', $id)
+        ->sum('si.qty');
+
+    $totalVendido = DB::table('sales')
+        ->where('cash_shift_id', $id)
+        ->sum('total');
+
+    // 3. DEVOLUCIONES (solo efectivo)
+    $devoluciones = DB::table('sales')
+        ->where('cash_shift_id', $id)
+        ->where('voided', true)
+        ->selectRaw('
+            COUNT(*) as cantidad_devoluciones,
+            SUM(total) as total_devuelto
+        ')
+        ->first();
+
+    // 4. ABONOS de clientes por método
+    $abonosPorMetodo = DB::table('client_payments')
+        ->where('cash_shift_id', $id)
+        ->selectRaw('
+            method as metodo,
+            COUNT(*) as cantidad_abonos,
+            SUM(amount) as total_abonado
+        ')
+        ->groupBy('method')
+        ->get()
+        ->keyBy('metodo');
+
+    // Preparar array de abonos
+    $abonos = [
+        'efectivo'      => ['cantidad' => 0, 'total' => 0],
+        'tarjeta'       => ['cantidad' => 0, 'total' => 0],
+        'transferencia' => ['cantidad' => 0, 'total' => 0],
+    ];
+
+    foreach ($abonosPorMetodo as $metodo => $data) {
+        if (isset($abonos[$metodo])) {
+            $abonos[$metodo]['cantidad'] = $data->cantidad_abonos;
+            $abonos[$metodo]['total'] = $data->total_abonado;
+        }
+    }
+
+
+
+
+// 5. LISTA DETALLADA de todas las ventas del turno
+    $ventas = DB::table('sales as s')
+        ->leftJoin('users as u', 'u.id', '=', 's.user_id')
+        ->leftJoin('clients as c', 'c.id', '=', 's.client_id')
+        ->where('s.cash_shift_id', $id)
+        ->select([
+            's.id',
+            's.created_at',
+            'u.name as cajero',
+            'c.name as cliente',
+            's.payment',
+            's.subtotal',
+            's.surcharge',
+            's.total',
+            's.cash_received',
+            's.cash_change',
+         
+        ])
+        ->orderBy('s.created_at', 'asc')
+        ->get();
+
+
+
+
+
+    return view('reportes.ventas.turno_detalle', compact(
+        'turno',
+        'metodos',
+        'totalVentas',
+        'totalUnidades',
+        'totalVendido',
+        'devoluciones',
+        'abonos',
+        'ventas'
+    ));
+}
+
+
 
 }

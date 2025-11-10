@@ -52,21 +52,47 @@
     </template>
 
     {{-- Modal Abrir turno --}}
-    <template x-teleport="body">
-      <div x-cloak x-show="openModal" class="fixed inset-0 z-50 grid place-items-center bg-black/40">
-        <div @click.outside="openModal=false" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-          <h3 class="text-lg font-semibold mb-3">Abrir turno</h3>
-          <label class="block text-sm text-gray-600 mb-1">Monto inicial</label>
-          <input type="number" step="0.01" min="0" x-model="form.opening_float" class="w-full rounded-lg border px-3 py-2 mb-3" placeholder="0.00">
-          <label class="block text-sm text-gray-600 mb-1">Notas (opcional)</label>
-          <textarea x-model="form.notes" class="w-full rounded-lg border px-3 py-2 mb-4" rows="2"></textarea>
-          <div class="flex justify-end gap-2">
-            <button @click="openModal=false" class="px-3 py-2 rounded-lg border">Cancelar</button>
-            <button :disabled="loading" @click="openShift" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">Guardar</button>
-          </div>
-        </div>
-      </div>
-    </template>
+ {{-- Modal Abrir turno --}}
+<template x-teleport="body">
+<div x-cloak x-show="openModal" class="fixed inset-0 z-50 grid place-items-center bg-black/40">
+  <div @click.outside="openModal=false" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+    <h3 class="text-lg font-semibold mb-3">🔓 Abrir turno</h3>
+    
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+      <p class="text-sm text-blue-800">
+        <strong>⚠️ Importante:</strong> Debes contar el efectivo que tienes en caja e ingresar el monto inicial antes de comenzar.
+      </p>
+    </div>
+    
+    <label class="block text-sm font-semibold text-gray-700 mb-1">
+      Monto inicial en caja <span class="text-red-500">*</span>
+    </label>
+    <input 
+      type="number" 
+      step="0.01" 
+      min="0.01" 
+      x-model="form.opening_float" 
+      required
+      class="w-full rounded-lg border-2 border-gray-300 px-3 py-2 mb-3 focus:border-blue-500 focus:ring focus:ring-blue-200" 
+      placeholder="Ejemplo: 500.00"
+      x-ref="openingFloatInput">
+    
+    <label class="block text-sm text-gray-600 mb-1">Notas (opcional)</label>
+    <textarea x-model="form.notes" class="w-full rounded-lg border px-3 py-2 mb-4" rows="2" placeholder="Ej: Turno de mañana"></textarea>
+    
+    <div class="flex justify-end gap-2">
+      <button @click="openModal=false" class="px-3 py-2 rounded-lg border hover:bg-gray-50">Cancelar</button>
+      <button 
+        :disabled="loading || !form.opening_float || form.opening_float <= 0" 
+        @click="openShift" 
+        class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <span x-show="!loading">✓ Abrir turno</span>
+        <span x-show="loading">Abriendo...</span>
+      </button>
+    </div>
+  </div>
+</div>
+</template>
 
     {{-- Modal Cerrar turno --}}
     <template x-teleport="body">
@@ -128,14 +154,51 @@
   </div>
 </div>
           </div>
-          <label class="block text-sm text-gray-600 mb-1">Conteo de efectivo (total)</label>
-          <input type="number" step="0.01" min="0" x-model="form.closing_cash_count" class="w-full rounded-lg border px-3 py-2 mb-3" placeholder="0.00">
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+  <p class="text-sm text-amber-800">
+    <strong>⚠️ Importante:</strong> Cuenta todo el efectivo que tienes en caja y anota el total exacto.
+  </p>
+</div>
+
+<label class="block text-sm font-semibold text-gray-700 mb-1">
+  Conteo total de efectivo <span class="text-red-500">*</span>
+</label>
+<input 
+  type="number" 
+  step="0.01" 
+  min="0" 
+  x-model="form.closing_cash_count" 
+  required
+  class="w-full rounded-lg border-2 border-gray-300 px-3 py-2 mb-3 focus:border-blue-500 focus:ring focus:ring-blue-200" 
+  placeholder="Ejemplo: 1250.00"
+  x-ref="closingCashInput">
+  
+<div x-show="form.closing_cash_count && summary.expected_cash" class="mb-3">
+  <div class="flex justify-between text-sm py-2 border-t border-b">
+    <span class="font-medium">Efectivo esperado:</span>
+    <span class="font-mono" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
+  </div>
+  <div class="flex justify-between text-sm py-2 border-b">
+    <span class="font-medium">Efectivo contado:</span>
+    <span class="font-mono" x-text="'L ' + Number(form.closing_cash_count ?? 0).toFixed(2)"></span>
+  </div>
+  <div class="flex justify-between text-sm py-2 font-bold"
+       :class="(Number(form.closing_cash_count||0) - Number(summary.expected_cash||0)) >= 0 ? 'text-green-700' : 'text-red-700'">
+    <span>Diferencia:</span>
+    <span class="font-mono" x-text="'L ' + (Number(form.closing_cash_count||0) - Number(summary.expected_cash||0)).toFixed(2)"></span>
+  </div>
+</div>
           <label class="block text-sm text-gray-600 mb-1">Notas (opcional)</label>
           <textarea x-model="form.notes" class="w-full rounded-lg border px-3 py-2 mb-4" rows="2"></textarea>
           <div class="flex justify-end gap-2">
             <button @click="closeModal=false" class="px-3 py-2 rounded-lg border">Cancelar</button>
-            <button :disabled="loading" @click="closeShift" class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-black disabled:opacity-50">Confirmar cierre</button>
-          </div>
+<button 
+  :disabled="loading || !form.closing_cash_count || form.closing_cash_count < 0" 
+  @click="closeShift" 
+  class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
+  <span x-show="!loading">🔒 Confirmar cierre</span>
+  <span x-show="loading">Cerrando...</span>
+</button>          </div>
         </div>
       </div>
     </template>
@@ -229,35 +292,47 @@
       },
 
       async openShift(){
-        this.loading = true;
-        try{
-          const r = await fetch('{{ route('caja.shift.open') }}', {
-            method:'POST',
-            headers:{
-              'Content-Type':'application/json',
-              'X-Requested-With':'XMLHttpRequest',
-              'X-CSRF-TOKEN':'{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-              opening_float: Number(this.form.opening_float||0),
-              notes: this.form.notes||''
-            })
-          });
-          if(!r.ok){
-            const err = await r.json().catch(()=>null);
-            throw new Error(err?.message || 'Error al abrir turno');
-          }
-          this.openModal = false;
-          this.form.opening_float = '';
-          this.form.notes = '';
-          await this.fetchCurrent();
-          alert('Turno abierto');
-        }catch(e){
-          alert(e.message || 'Error al abrir turno');
-        }finally{
-          this.loading = false;
-        }
+  // Validar antes de enviar
+  if (!this.form.opening_float || this.form.opening_float <= 0) {
+    alert('⚠️ Debes ingresar el monto inicial de la caja (mayor a 0)');
+    return;
+  }
+  
+  this.loading = true;
+  try{
+    const r = await fetch('{{ route('caja.shift.open') }}', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        'X-Requested-With':'XMLHttpRequest',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'Cache-Control':'no-store'
       },
+      credentials:'same-origin',
+      cache:'no-store',
+      body: JSON.stringify({
+        opening_float: Number(this.form.opening_float||0),
+        notes: this.form.notes||''
+      })
+    });
+    
+    if(!r.ok){
+      const err = await r.json().catch(()=>null);
+      throw new Error(err?.message || 'Error al abrir turno');
+    }
+    
+    this.openModal = false;
+    this.form.opening_float = '';
+    this.form.notes = '';
+    await this.fetchCurrent();
+    alert('✅ Turno abierto correctamente');
+  }catch(e){
+    alert('❌ ' + (e.message || 'Error al abrir turno'));
+  }finally{
+    this.loading = false;
+  }
+},
 
       async closeShift(){
         this.loading = true;

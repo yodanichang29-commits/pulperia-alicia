@@ -101,6 +101,10 @@ Route::middleware('auth')
         // NUEVO: ventas por producto (vista + filtro)
         Route::get('/por-producto',   [ReporteVentasController::class, 'porProducto'])->name('producto');
 
+
+        Route::get('/turnos',         [ReporteVentasController::class, 'turnos'])->name('turnos');
+        Route::get('/turnos/{id}',    [ReporteVentasController::class, 'turnoDetalle'])->name('turnos.detalle');
+
         // NUEVO: autocomplete productos (JSON)
         Route::get('/buscar-productos', [ReporteVentasController::class, 'buscarProductos'])->name('buscar_productos');
     });
