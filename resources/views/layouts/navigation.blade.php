@@ -1,0 +1,254 @@
+<nav x-data="{ open: false }"
+     class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+
+
+    <!-- Primary Navigation Menu -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex">
+                <!-- Logo (si tienes uno, colócalo aquí) -->
+                {{-- <div class="shrink-0 flex items-center">
+                    <a href="{{ route('caja') }}">
+                        <img src="{{ asset('brand/favicon-512.png') }}" class="h-8 w-8" alt="logo">
+                    </a>
+                </div> --}}
+
+                <!-- Navigation Links (DESKTOP) -->
+                <div class="hidden space-x-2 sm:-my-px sm:ms-10 sm:flex">
+
+{{-- Dashboard --}}
+<x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" class="rounded-xl">
+    <span class="inline-flex items-center gap-2">
+        <!-- Heroicon: chart-bar -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 3v18h18M9 17v-6m4 6V9m4 8V5"/>
+        </svg>
+        <span>Dashboard</span>
+    </span>
+</x-nav-link>
+
+
+
+                    {{-- Caja --}}
+                    <x-nav-link :href="route('caja')" :active="request()->routeIs('caja')" class="rounded-xl">
+                        <span class="inline-flex items-center gap-2">
+                          <!-- Heroicon: cart -->
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                               fill="none" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                  d="M2.25 3h1.386c.51 0 .955.343 1.091.835l.383 1.44m0 0L6.75 12.75m-1.64-7.475h13.78a.75.75 0 01.73.93l-1.28 5.12a1.5 1.5 0 01-1.46 1.15H7.17m0 0l-.42-1.68M7.5 20.25a.75.75 0 100-1.5.75.75 0 000 1.5zm9 0a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+                          </svg>
+                          <span>Caja</span>
+                        </span>
+                    </x-nav-link>
+
+                    {{-- Reporte CxC --}}
+                    <x-nav-link :href="route('reportes.cxc')" :active="request()->routeIs('reportes.cxc')" class="rounded-xl">
+                        <span class="inline-flex items-center gap-2">
+                          <!-- Heroicon: banknotes -->
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                               fill="none" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                  d="M2.25 7.5h19.5m-19.5 0A2.25 2.25 0 014.5 5.25h15a2.25 2.25 0 012.25 2.25m-19.5 0v9a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25v-9m-3 0a3 3 0 01-3 3H8.25a3 3 0 01-3-3"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                  d="M12 10.5c1.657 0 3 1.12 3 2.5s-1.343 2.5-3 2.5-3-1.12-3-2.5 1.343-2.5 3-2.5z"/>
+                          </svg>
+                          <span>Reporte Credito</span>
+                        </span>
+                    </x-nav-link>
+
+{{-- Inventario --}}
+<x-nav-link :href="route('inventario.index')" :active="request()->routeIs('inventario.*')" class="rounded-xl">
+    <span class="inline-flex items-center gap-2">
+        <!-- Icono tipo caja (outline) -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" class="w-5 h-5" stroke-width="1.8">
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+            <path d="M3 10h18"></path>
+            <path d="M9 16h6"></path>
+        </svg>
+        <span>Inventario</span>
+    </span>
+</x-nav-link>
+
+
+
+
+{{-- Ingresos y Egresos --}}
+<x-nav-link href="{{ route('ingresos.index') }}" :active="request()->routeIs('ingresos.*')" class="rounded-md">
+    <span class="inline-flex items-center gap-2">
+        <!-- Icono tipo caja o movimiento -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 3v1a2 2 0 002 2h2.28a2 2 0 011.42.59l1.42 1.42a2 2 0 001.42.59h5.46a2 2 0 001.42-.59l1.42-1.42A2 2 0 0121 6h0a2 2 0 002 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V3z" />
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 8v8m4-4H8" />
+        </svg>
+        <span>Ingresos y Egresos Mercancia</span>
+    </span>
+</x-nav-link>
+
+
+
+{{-- Proveedores --}}
+<a href="{{ route('proveedores.index') }}"
+   class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md
+          {{ request()->routeIs('proveedores.*') ? 'text-blue-700 border-b-2 border-blue-600' : 'text-gray-700 hover:text-gray-900' }}">
+  {{-- Icono cajita --}}
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 me-2" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M21 8.5V18a2 2 0 0 1-1.2 1.82l-6.8 3.01a2 2 0 0 1-1.6 0L3.6 19.82A2 2 0 0 1 2.4 18V8.5l9 3.99 9-3.99zM12 2l9 4.02-9 3.98L3 6.02 12 2z"/>
+  </svg>
+  Proveedores
+</a>
+
+
+
+
+{{-- Reporte Ventas --}}
+<x-nav-link href="{{ route('reportes.ventas.index') }}"
+            :active="request()->routeIs('reportes.ventas.*')"
+            class="rounded-xl">    <span class="inline-flex items-center gap-2">
+        <!-- Heroicon: chart-bar -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor"
+             class="w-5 h-5" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M9 17V9M13 17v-6M17 17v-3"/>
+        </svg>
+        <span>Reporte Ventas</span>
+    </span>
+</x-nav-link>
+
+
+
+{{-- Finanzas --}}
+<x-nav-link href="{{ route('finanzas.index') }}" :active="request()->routeIs('finanzas.*')" class="rounded-md">
+    <span class="inline-flex items-center gap-2">
+        <!-- Icono tipo gráfico o balance -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" 
+                  d="M3 3v18h18M7 13l3-3 3 3 4-4m-7 7h7" />
+        </svg>
+        <span>Finanzas</span>
+    </span>
+</x-nav-link>
+
+
+
+                </div>
+            </div>
+
+            <!-- Settings Dropdown (desktop) -->
+            <div class="hidden sm:flex sm:items-center sm:ms-6">
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                            <div>{{ Auth::user()->name }}</div>
+                            <div class="ms-1">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </button>
+                    </x-slot>
+
+                    <x-slot name="content">
+                        <x-dropdown-link :href="route('profile.edit')">
+                            {{ __('Profile') }}
+                        </x-dropdown-link>
+
+                        <!-- Authentication -->
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <x-dropdown-link :href="route('logout')"
+                                onclick="event.preventDefault(); this.closest('form').submit();">
+                                {{ __('Log Out') }}
+                            </x-dropdown-link>
+                        </form>
+                    </x-slot>
+                </x-dropdown>
+            </div>
+
+            <!-- Hamburger (mobile) -->
+            <div class="-me-2 flex items-center sm:hidden">
+                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
+                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex"
+                              stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16" />
+                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden"
+                              stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Responsive Navigation Menu (MÓVIL) -->
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+        <div class="pt-2 pb-3 space-y-1">
+
+            <!-- Caja -->
+            <x-responsive-nav-link :href="route('caja')" :active="request()->routeIs('caja')">
+                <span class="inline-flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                              d="M2.25 3h1.386c.51 0 .955.343 1.091.835l.383 1.44m0 0L6.75 12.75m-1.64-7.475h13.78a.75.75 0 01.73.93l-1.28 5.12a1.5 1.5 0 01-1.46 1.15H7.17m0 0l-.42-1.68M7.5 20.25a.75.75 0 100-1.5.75.75 0 000 1.5zm9 0a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+                    </svg>
+                    <span>Caja</span>
+                </span>
+            </x-responsive-nav-link>
+
+            <!-- Reporte CxC -->
+            <x-responsive-nav-link :href="route('reportes.cxc')" :active="request()->routeIs('reportes.cxc')">
+                <span class="inline-flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                              d="M2.25 7.5h19.5m-19.5 0A2.25 2.25 0 014.5 5.25h15a2.25 2.25 0 012.25 2.25m-19.5 0v9a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25v-9m-3 0a3 3 0 01-3 3H8.25a3 3 0 01-3-3"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                              d="M12 10.5c1.657 0 3 1.12 3 2.5s-1.343 2.5-3 2.5-3-1.12-3-2.5 1.343-2.5 3-2.5z"/>
+                    </svg>
+                    <span>Reporte Credito</span>
+                </span>
+            </x-responsive-nav-link>
+
+
+
+            {{-- Proveedores (móvil) --}}
+<a href="{{ route('proveedores.index') }}"
+   class="block px-4 py-2 text-base {{ request()->routeIs('proveedores.*') ? 'text-blue-700 font-semibold' : 'text-gray-700' }}">
+  Proveedores
+</a>
+
+
+        </div>
+
+        <!-- Responsive Settings Options -->
+        <div class="pt-4 pb-1 border-t border-gray-200">
+            <div class="px-4">
+                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
+                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+            </div>
+
+            <div class="mt-3 space-y-1">
+                <x-responsive-nav-link :href="route('profile.edit')">
+                    {{ __('Profile') }}
+                </x-responsive-nav-link>
+
+                <!-- Authentication -->
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <x-responsive-nav-link :href="route('logout')"
+                        onclick="event.preventDefault(); this.closest('form').submit();">
+                        {{ __('Log Out') }}
+                    </x-responsive-nav-link>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
