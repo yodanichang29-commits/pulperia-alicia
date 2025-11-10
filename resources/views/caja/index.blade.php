@@ -81,6 +81,26 @@
                 <span x-text="'L ' + Number(row.total ?? 0).toFixed(2)"></span>
               </div>
             </template>
+
+
+
+<!-- ============================================ -->
+<!-- ✅ NUEVA LÍNEA: DEVOLUCIONES -->
+<!-- ============================================ -->
+<div 
+  x-show="Number(summary.devoluciones ?? 0) > 0" 
+  class="flex justify-between text-sm py-2 border-t mt-2 pt-2"
+>
+  <span class="font-semibold text-red-600 uppercase">
+    🔄 DEVOLUCIONES
+  </span>
+  <span class="font-semibold text-red-600 tabular-nums">
+    L -<span x-text="Number(summary.devoluciones ?? 0).toFixed(2)"></span>
+  </span>
+</div>
+
+
+
             <div class="flex justify-between">
               <span>ABONOS (efectivo)</span>
               <span>L <span x-text="Number(summary.abonos_by_method?.efectivo || 0).toFixed(2)"></span></span>
@@ -97,10 +117,16 @@
               <span>Total abonos</span>
               <span>L <span x-text="Number(summary.abonos_total || 0).toFixed(2)"></span></span>
             </div>
-            <div class="flex justify-between text-sm font-semibold pt-2">
-              <span>Efectivo esperado</span>
-              <span x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
-            </div>
+         <div class="border-t mt-2 pt-3">
+  <div class="flex justify-between text-sm font-semibold">
+    <span>Efectivo esperado</span>
+    <span class="text-lg" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
+  </div>
+  <!-- ✅ NUEVA NOTA EXPLICATIVA -->
+  <div class="text-xs text-gray-500 mt-1">
+    (Fondo inicial + Ventas efectivo + Abonos - Devoluciones)
+  </div>
+</div>
           </div>
           <label class="block text-sm text-gray-600 mb-1">Conteo de efectivo (total)</label>
           <input type="number" step="0.01" min="0" x-model="form.closing_cash_count" class="w-full rounded-lg border px-3 py-2 mb-3" placeholder="0.00">
@@ -1464,39 +1490,75 @@ async retrievePendingSale(id){
 }
 
 
-  function displaySalesForReturn(sales) {
-      const list = document.getElementById('returnSalesList');
-      list.innerHTML = '';
-      
-      sales.forEach(sale => {
-          const time = new Date(sale.created_at).toLocaleTimeString('es-HN', {
-              hour: '2-digit',
-              minute: '2-digit'
-          });
-          
-          const div = document.createElement('div');
-          div.className = 'border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition cursor-pointer';
-          div.innerHTML = `
-              <div class="flex justify-between items-center">
-                  <div class="flex-1">
-                      <div class="font-semibold">🕐 ${time} - Venta #${sale.sale_id}</div>
-                      <div class="text-sm text-gray-600">
-                          ${sale.qty}x ${sale.product_name} - L. ${parseFloat(sale.total).toFixed(2)}
-                      </div>
-                  </div>
-                  <button onclick='selectSaleForReturn(${JSON.stringify(sale)})'
-                          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
-                      DEVOLVER
-                  </button>
-              </div>
-          `;
-          
-          list.appendChild(div);
-      });
-      
-      document.getElementById('returnStep2').classList.remove('hidden');
-  }
-
+ function displaySalesForReturn(sales) {
+  const list = document.getElementById('returnSalesList');
+  list.innerHTML = '';
+  
+  sales.forEach(sale => {
+    const time = new Date(sale.created_at).toLocaleTimeString('es-HN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    // ============================================
+    // ✅ DETECTAR SI ES DEVOLUCIÓN (cantidad negativa)
+    // ============================================
+    const cantidad = parseFloat(sale.qty);
+    const esDevolucion = cantidad < 0;
+    const cantidadAbsoluta = Math.abs(cantidad);
+    
+    const div = document.createElement('div');
+    // Si es devolución, agregar borde rojo y fondo diferente
+    const estiloExtra = esDevolucion 
+      ? 'border-red-300 bg-red-50' 
+      : 'border-gray-200 hover:bg-gray-50';
+    
+    div.className = `border rounded-lg p-3 transition cursor-pointer ${estiloExtra}`;
+    
+    // ============================================
+    // ✅ MOSTRAR DIFERENTE SI YA FUE DEVUELTO
+    // ============================================
+    if (esDevolucion) {
+      // Es una devolución - mostrar con texto especial
+      div.innerHTML = `
+        <div class="flex justify-between items-center">
+          <div class="flex-1">
+            <div class="font-semibold text-red-700">🕐 ${time} - Venta #${sale.sale_id}</div>
+            <div class="text-sm text-red-600">
+              ${cantidadAbsoluta}x ${sale.product_name} - L. ${parseFloat(sale.total).toFixed(2)}
+            </div>
+            <div class="text-xs text-red-500 mt-1">
+              ⚠️ Esta es una devolución registrada
+            </div>
+          </div>
+          <div class="px-4 py-2 bg-red-200 text-red-800 font-bold rounded-lg cursor-not-allowed">
+            ✅ YA DEVUELTO
+          </div>
+        </div>
+      `;
+    } else {
+      // Es una venta normal - mostrar con botón DEVOLVER
+      div.innerHTML = `
+        <div class="flex justify-between items-center">
+          <div class="flex-1">
+            <div class="font-semibold">🕐 ${time} - Venta #${sale.sale_id}</div>
+            <div class="text-sm text-gray-600">
+              ${sale.qty}x ${sale.product_name} - L. ${parseFloat(sale.total).toFixed(2)}
+            </div>
+          </div>
+          <button onclick='selectSaleForReturn(${JSON.stringify(sale)})'
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
+            DEVOLVER
+          </button>
+        </div>
+      `;
+    }
+    
+    list.appendChild(div);
+  });
+  
+  document.getElementById('returnStep2').classList.remove('hidden');
+}
   function selectSaleForReturn(sale) {
       selectedSaleItemForReturn = sale;
       
@@ -1707,7 +1769,13 @@ async function searchProductInShiftById(productId) {
     }
 
     document.getElementById('returnError').classList.add('hidden');
+    
+    // ============================================
+    // ✅ YA NO FILTRAMOS - MOSTRAMOS TODAS
+    // ============================================
+    // Simplemente pasamos todas las ventas a la función de display
     displaySalesForReturn(data.sales);
+    
   } catch (e) {
     console.error(e);
     showReturnError('Error al buscar ventas');
