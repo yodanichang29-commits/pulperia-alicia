@@ -92,9 +92,10 @@ Route::middleware('auth')->group(function () {
 /*
 |--------------------------------------------------------------------------
 | REPORTES: Ventas (UN SOLO BLOQUE, nombres consistentes)
+| PROTEGIDO: Requiere contraseña compartida
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')
+Route::middleware(['auth', 'sensitive'])
     ->prefix('reportes/ventas')
     ->name('reportes.ventas.')
     ->group(function () {
@@ -186,9 +187,10 @@ Route::middleware('auth')
 /*
 |--------------------------------------------------------------------------
 | FINANZAS
+| PROTEGIDO: Requiere contraseña compartida
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->get('/finanzas', [FinanceController::class, 'index'])->name('finanzas.index');
+Route::middleware(['auth', 'sensitive'])->get('/finanzas', [FinanceController::class, 'index'])->name('finanzas.index');
 
 
 
@@ -213,12 +215,11 @@ Route::middleware('auth')->prefix('movimientos-caja')->name('cash-movements.')->
 
 
 
-Route::get('/reportes/ventas/detalle', [\App\Http\Controllers\Reportes\ReporteVentasController::class, 'detalle'])
+// Rutas adicionales de reportes de ventas (protegidas)
+Route::middleware(['auth', 'sensitive'])->get('/reportes/ventas/detalle', [\App\Http\Controllers\Reportes\ReporteVentasController::class, 'detalle'])
     ->name('reportes.ventas.detalle');
 
-
-
-Route::get('/reportes/ventas/{id}', [\App\Http\Controllers\Reportes\ReporteVentasController::class, 'show'])
+Route::middleware(['auth', 'sensitive'])->get('/reportes/ventas/{id}', [\App\Http\Controllers\Reportes\ReporteVentasController::class, 'show'])
     ->name('reportes.ventas.show');
 
 

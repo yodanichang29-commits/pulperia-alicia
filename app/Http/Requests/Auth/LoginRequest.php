@@ -28,12 +28,13 @@ class LoginRequest extends FormRequest
     {
         return [
             'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            // Password no es requerido para login familiar
         ];
     }
 
     /**
      * Attempt to authenticate the request's credentials.
+     * Login familiar: solo requiere email, autenticación automática
      *
      * @throws \Illuminate\Validation\ValidationException
      */
@@ -41,13 +42,19 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Buscar usuario por email
+        $user = \App\Models\User::where('email', $this->email)->first();
+
+        if (! $user) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Usuario no encontrado.',
             ]);
         }
+
+        // Login automático sin contraseña
+        Auth::login($user, true); // true = remember me permanente
 
         RateLimiter::clear($this->throttleKey());
     }
