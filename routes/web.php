@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 
 // ===== Controladores =====
 use App\Http\Controllers\CajaController;
@@ -308,6 +310,29 @@ Route::get('/api/products/{product}/check-expiry', function (\App\Models\Product
 
 
 
+
+/*
+|--------------------------------------------------------------------------
+| VERIFICACIÓN DE ACCESO SENSIBLE
+|--------------------------------------------------------------------------
+*/
+Route::post('/verify-sensitive-access', function (Request $request) {
+    $password = $request->input('sensitive_password');
+    $intendedUrl = $request->input('intended_url');
+
+    // Verificar contraseña compartida (bellacrosh2001)
+    if (Hash::check($password, $request->user()->password)) {
+        // Guardar verificación en sesión por 5 minutos
+        $cacheKey = 'sensitive_access_' . $request->user()->id;
+        session([$cacheKey => now()]);
+
+        // Redirigir a la URL original
+        return redirect($intendedUrl);
+    }
+
+    // Contraseña incorrecta
+    return back()->withErrors(['sensitive_password' => 'Contraseña incorrecta']);
+})->middleware('auth')->name('verify.sensitive');
 
 /*
 |--------------------------------------------------------------------------
