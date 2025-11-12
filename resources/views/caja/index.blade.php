@@ -97,115 +97,133 @@
 </div>
 </template>
 
-    {{-- Modal Cerrar turno --}}
-    <template x-teleport="body">
-      <div x-cloak x-show="closeModal" class="fixed inset-0 z-50 grid place-items-center bg-black/40">
-        <div @click.outside="closeModal=false" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
-          <h3 class="text-lg font-semibold mb-3">Cerrar turno</h3>
-          <div class="rounded-lg border p-3 mb-3">
-            <div class="text-sm text-gray-600 mb-1">Resumen por método</div>
-            <template x-for="(row, method) in summary.by_payment" :key="method">
-              <div class="flex justify-between text-sm py-1 border-b last:border-b-0">
-                <span class="uppercase" x-text="methodLabel(method)"></span>
-                <span x-text="'L ' + Number(row.total ?? 0).toFixed(2)"></span>
-              </div>
-            </template>
-
-
-
-<!-- ============================================ -->
-<!-- ✅ NUEVA LÍNEA: DEVOLUCIONES -->
-<!-- ============================================ -->
-<div 
-  x-show="Number(summary.devoluciones ?? 0) > 0" 
-  class="flex justify-between text-sm py-2 border-t mt-2 pt-2"
->
-  <span class="font-semibold text-red-600 uppercase">
-    🔄 DEVOLUCIONES
-  </span>
-  <span class="font-semibold text-red-600 tabular-nums">
-    L -<span x-text="Number(summary.devoluciones ?? 0).toFixed(2)"></span>
-  </span>
-</div>
-
-
-
-            <div class="flex justify-between">
-              <span>ABONOS (efectivo)</span>
-              <span>L <span x-text="Number(summary.abonos_by_method?.efectivo || 0).toFixed(2)"></span></span>
+{{-- Modal Cerrar turno --}}
+<template x-teleport="body">
+  <div x-cloak x-show="closeModal" class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+    <div @click.outside="closeModal=false" class="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-xl overflow-hidden">
+      
+      {{-- Header fijo --}}
+      <div class="px-5 py-4 border-b bg-white shrink-0">
+        <h3 class="text-lg font-semibold">Cerrar turno</h3>
+      </div>
+      
+      {{-- Contenido scrollable --}}
+      <div class="flex-1 overflow-y-auto px-5 py-4">
+        
+        <div class="rounded-lg border p-3 mb-3">
+          <div class="text-sm text-gray-600 mb-1">Resumen por método</div>
+          <template x-for="(row, method) in summary.by_payment" :key="method">
+            <div class="flex justify-between text-sm py-1 border-b last:border-b-0">
+              <span class="uppercase" x-text="methodLabel(method)"></span>
+              <span x-text="'L ' + Number(row.total ?? 0).toFixed(2)"></span>
             </div>
-            <div class="flex justify-between">
-              <span>ABONOS (tarjeta)</span>
-              <span>L <span x-text="Number(summary.abonos_by_method?.tarjeta || 0).toFixed(2)"></span></span>
-            </div>
-            <div class="flex justify-between">
-              <span>ABONOS (transferencia)</span>
-              <span>L <span x-text="Number(summary.abonos_by_method?.transferencia || 0).toFixed(2)"></span></span>
-            </div>
-            <div class="flex justify-between font-semibold">
-              <span>Total abonos</span>
-              <span>L <span x-text="Number(summary.abonos_total || 0).toFixed(2)"></span></span>
-            </div>
-         <div class="border-t mt-2 pt-3">
-  <div class="flex justify-between text-sm font-semibold">
-    <span>Efectivo esperado</span>
-    <span class="text-lg" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
-  </div>
-  <!-- ✅ NUEVA NOTA EXPLICATIVA -->
-  <div class="text-xs text-gray-500 mt-1">
-    (Fondo inicial + Ventas efectivo + Abonos - Devoluciones)
-  </div>
-</div>
+          </template>
+
+          {{-- Devoluciones --}}
+          <div 
+            x-show="Number(summary.devoluciones ?? 0) > 0" 
+            class="flex justify-between text-sm py-2 border-t mt-2 pt-2"
+          >
+            <span class="font-semibold text-red-600 uppercase">
+              🔄 DEVOLUCIONES
+            </span>
+            <span class="font-semibold text-red-600 tabular-nums">
+              L -<span x-text="Number(summary.devoluciones ?? 0).toFixed(2)"></span>
+            </span>
           </div>
-        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-  <p class="text-sm text-amber-800">
-    <strong>⚠️ Importante:</strong> Cuenta todo el efectivo que tienes en caja y anota el total exacto.
-  </p>
-</div>
 
-<label class="block text-sm font-semibold text-gray-700 mb-1">
-  Conteo total de efectivo <span class="text-red-500">*</span>
-</label>
-<input 
-  type="number" 
-  step="0.01" 
-  min="0" 
-  x-model="form.closing_cash_count" 
-  required
-  class="w-full rounded-lg border-2 border-gray-300 px-3 py-2 mb-3 focus:border-blue-500 focus:ring focus:ring-blue-200" 
-  placeholder="Ejemplo: 1250.00"
-  x-ref="closingCashInput">
-  
-<div x-show="form.closing_cash_count && summary.expected_cash" class="mb-3">
-  <div class="flex justify-between text-sm py-2 border-t border-b">
-    <span class="font-medium">Efectivo esperado:</span>
-    <span class="font-mono" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
-  </div>
-  <div class="flex justify-between text-sm py-2 border-b">
-    <span class="font-medium">Efectivo contado:</span>
-    <span class="font-mono" x-text="'L ' + Number(form.closing_cash_count ?? 0).toFixed(2)"></span>
-  </div>
-  <div class="flex justify-between text-sm py-2 font-bold"
-       :class="(Number(form.closing_cash_count||0) - Number(summary.expected_cash||0)) >= 0 ? 'text-green-700' : 'text-red-700'">
-    <span>Diferencia:</span>
-    <span class="font-mono" x-text="'L ' + (Number(form.closing_cash_count||0) - Number(summary.expected_cash||0)).toFixed(2)"></span>
-  </div>
-</div>
-          <label class="block text-sm text-gray-600 mb-1">Notas (opcional)</label>
-          <textarea x-model="form.notes" class="w-full rounded-lg border px-3 py-2 mb-4" rows="2"></textarea>
-          <div class="flex justify-end gap-2">
-            <button @click="closeModal=false" class="px-3 py-2 rounded-lg border">Cancelar</button>
-<button 
-  :disabled="loading || !form.closing_cash_count || form.closing_cash_count < 0" 
-  @click="closeShift" 
-  class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
-  <span x-show="!loading">🔒 Confirmar cierre</span>
-  <span x-show="loading">Cerrando...</span>
-</button>          </div>
+          {{-- Abonos --}}
+          <div class="flex justify-between text-sm py-1 border-t mt-2 pt-2">
+            <span>ABONOS (efectivo)</span>
+            <span>L <span x-text="Number(summary.abonos_by_method?.efectivo || 0).toFixed(2)"></span></span>
+          </div>
+          <div class="flex justify-between text-sm py-1">
+            <span>ABONOS (tarjeta)</span>
+            <span>L <span x-text="Number(summary.abonos_by_method?.tarjeta || 0).toFixed(2)"></span></span>
+          </div>
+          <div class="flex justify-between text-sm py-1">
+            <span>ABONOS (transferencia)</span>
+            <span>L <span x-text="Number(summary.abonos_by_method?.transferencia || 0).toFixed(2)"></span></span>
+          </div>
+          <div class="flex justify-between font-semibold text-sm py-1 border-t mt-1 pt-1">
+            <span>Total abonos</span>
+            <span>L <span x-text="Number(summary.abonos_total || 0).toFixed(2)"></span></span>
+          </div>
+
+          {{-- Efectivo esperado --}}
+          <div class="border-t mt-2 pt-3">
+            <div class="flex justify-between text-sm font-semibold">
+              <span>Efectivo esperado</span>
+              <span class="text-lg" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              (Fondo inicial + Ventas efectivo + Abonos - Devoluciones)
+            </div>
+          </div>
+        </div>
+
+        {{-- Advertencia --}}
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <p class="text-sm text-amber-800">
+            <strong>⚠️ Importante:</strong> Cuenta todo el efectivo que tienes en caja y anota el total exacto.
+          </p>
+        </div>
+
+        {{-- Input de conteo --}}
+        <label class="block text-sm font-semibold text-gray-700 mb-1">
+          Conteo total de efectivo <span class="text-red-500">*</span>
+        </label>
+        <input 
+          type="number" 
+          step="0.01" 
+          min="0" 
+          x-model="form.closing_cash_count" 
+          required
+          class="w-full rounded-lg border-2 border-gray-300 px-3 py-2 mb-3 focus:border-blue-500 focus:ring focus:ring-blue-200" 
+          placeholder="Ejemplo: 1250.00"
+          x-ref="closingCashInput">
+        
+        {{-- Diferencia --}}
+        <div x-show="form.closing_cash_count && summary.expected_cash" class="mb-3">
+          <div class="flex justify-between text-sm py-2 border-t border-b">
+            <span class="font-medium">Efectivo esperado:</span>
+            <span class="font-mono" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
+          </div>
+          <div class="flex justify-between text-sm py-2 border-b">
+            <span class="font-medium">Efectivo contado:</span>
+            <span class="font-mono" x-text="'L ' + Number(form.closing_cash_count ?? 0).toFixed(2)"></span>
+          </div>
+          <div class="flex justify-between text-sm py-2 font-bold"
+               :class="(Number(form.closing_cash_count||0) - Number(summary.expected_cash||0)) >= 0 ? 'text-green-700' : 'text-red-700'">
+            <span>Diferencia:</span>
+            <span class="font-mono" x-text="'L ' + (Number(form.closing_cash_count||0) - Number(summary.expected_cash||0)).toFixed(2)"></span>
+          </div>
+        </div>
+
+        {{-- Notas --}}
+        <label class="block text-sm text-gray-600 mb-1">Notas (opcional)</label>
+        <textarea x-model="form.notes" class="w-full rounded-lg border px-3 py-2" rows="2"></textarea>
+      </div>
+
+      {{-- Footer fijo --}}
+      <div class="px-5 py-4 border-t bg-white shrink-0">
+        <div class="flex justify-end gap-2">
+          <button @click="closeModal=false" class="px-3 py-2 rounded-lg border hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button 
+            :disabled="loading || !form.closing_cash_count || form.closing_cash_count < 0" 
+            @click="closeShift" 
+            class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
+            <span x-show="!loading">🔒 Confirmar cierre</span>
+            <span x-show="loading">Cerrando...</span>
+          </button>
         </div>
       </div>
-    </template>
+
+    </div>
   </div>
+</template>
 
   @push('scripts')
   <script>
@@ -1211,10 +1229,11 @@
         },
 
         async createClient(){
-          if(!this.newClient.name?.trim()){
-            alert('Escribe el nombre del cliente.');
-            return;
-          }
+         if(!this.newClient.name?.trim()){
+    showClientNameRequired();
+    return;
+}
+          
           try{
             const r = await fetch(`{{ route('caja.clients.store') }}`,{
               method:'POST',
@@ -1225,11 +1244,11 @@
               body: JSON.stringify(this.newClient)
             });
 
-            if(!r.ok){
-              const t = await r.text();
-              alert(t || 'No se pudo crear el cliente.');
-              return;
-            }
+           if(!r.ok){
+    const t = await r.text();
+    showError(t || 'No se pudo crear el cliente.', 'Error al crear cliente');
+    return;
+}
 
             const c = await r.json();
             this.client = c;
@@ -1237,9 +1256,9 @@
             this.openNewClient = false;
             this.toast('Cliente guardado ✅');
 
-          }catch{
-            alert('Error de red.');
-          }
+         }catch{
+    showNetworkError();
+}
         },
 
         catchScan(e){
@@ -1270,7 +1289,7 @@
             headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest','Cache-Control':'no-store'}
           });
           const cj = await cr.json().catch(()=>({shift:null}));
-          if (!cj.shift) { alert('Debes abrir un turno antes de vender.'); return; }
+          if (!cj.shift) { showShiftRequired(); return; }
 
           if(!this.cart.length) return;
 
@@ -1307,10 +1326,10 @@
   }
 
 
-          if(this.payment==='credit' && !this.client){
-            alert('Selecciona o crea un cliente para ventas a crédito.');
-            return;
-          }
+         if(this.payment==='credit' && !this.client){
+    showClientRequired();
+    return;
+}
 
           const body = {
             items: this.cart.map(x=>({id:x.id,qty:x.qty,price:x.price})),
@@ -1337,7 +1356,7 @@
               body: JSON.stringify(body)
             });
 
-          if (!r.ok) {
+      if (!r.ok) {
   let msg = 'No se pudo registrar la venta.';
   try {
     const err = await r.json();
@@ -1358,35 +1377,34 @@
               <p style="font-size: 16px; margin-bottom: 10px;">
                 <strong>El siguiente producto está vencido:</strong>
               </p>
-              <div style="background: #fee; border-left: 4px solid #f00; padding: 15px; border-radius: 5px;">
-                <p style="font-size: 18px; font-weight: bold; color: #d00; margin-bottom: 5px;">
+              <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 8px;">
+                <p style="font-size: 18px; font-weight: bold; color: #dc2626; margin-bottom: 8px;">
                   📦 ${productName}
                 </p>
-                <p style="font-size: 14px; color: #666;">
+                <p style="font-size: 14px; color: #6b7280; margin: 0;">
                   🗓️ Fecha de vencimiento: <strong>${expiryDate}</strong>
                 </p>
               </div>
-              <p style="font-size: 14px; color: #666; margin-top: 15px;">
-                ❌ <strong>No se puede vender este producto.</strong> Por favor, retíralo del carrito.
+              <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
+                ❌ <strong>No se puede vender este producto.</strong><br>Por favor, retíralo del carrito.
               </p>
             </div>
           `,
           confirmButtonText: 'Entendido',
-          confirmButtonColor: '#dc2626',
-          width: '500px'
+          confirmButtonColor: '#ef4444',
+          width: '550px',
+          customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+          }
         });
         return;
       }
     }
   } catch {}
   
-  // Error genérico
-  Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: msg,
-    confirmButtonColor: '#dc2626'
-  });
+  // Error genérico - ahora usa nuestra función helper
+  showError(msg, 'Error en la venta');
   return;
 }
 
@@ -1402,77 +1420,212 @@
             this.clientResults = [];
             this.toast('Venta registrada ✅');
 
-          }catch(e){
-            console.error(e);
-            alert('Error de red.');
-          }
+         }catch(e){
+    console.error(e);
+    showNetworkError();
+}
         },
 
-        holdSale(){
-          if(!this.cart.length){
-            alert('⚠️ No hay productos en el carrito para poner en espera');
-            return;
-          }
-          document.getElementById('holdSaleModal').classList.remove('hidden');
-        },
+        async holdSale(){
+  if(!this.cart.length){
+    Swal.fire({
+      icon: 'warning',
+      title: 'Carrito vacío',
+      text: 'No hay productos en el carrito para poner en espera',
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#f59e0b',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
+    return;
+  }
 
-        async showPendingSales(){
-          try{
-            const r = await fetch('/sales-management/pending',{
-              headers:{
-                'Accept':'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-              }
-            });
-            const data = await r.json();
-            
-            const list = document.getElementById('pendingSalesList');
-            const noSales = document.getElementById('noPendingSales');
-            
-            if(data.pending_sales.length === 0){
-              list.innerHTML = '';
-              noSales.classList.remove('hidden');
-            }else{
-              noSales.classList.add('hidden');
-              list.innerHTML = '';
-              
-              data.pending_sales.forEach(sale => {
-                const time = new Date(sale.created_at).toLocaleTimeString('es-HN',{
-                  hour:'2-digit', minute:'2-digit'
-                });
-                
-                const div = document.createElement('div');
-                div.className = 'border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition';
-                div.innerHTML = `
-                  <div class="flex justify-between items-center">
-                    <div class="flex-1">
-                      <div class="font-semibold text-lg">${sale.customer_name || 'Sin nombre'}</div>
-                      <div class="text-sm text-gray-600">🕐 ${time} • ${sale.items.length} productos</div>
-                      <div class="text-lg font-bold text-blue-600 mt-1">L. ${parseFloat(sale.total).toFixed(2)}</div>
-                      ${sale.notes ? `<div class="text-xs text-gray-500 mt-1">📝 ${sale.notes}</div>` : ''}
-                    </div>
-                    <div class="flex flex-col gap-2 ml-4">
-                      <button onclick="window.posInstance.retrievePendingSale(${sale.id})"
-                              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm">
-                        ▶️ Continuar
-                      </button>
-                      <button onclick="window.posInstance.deletePendingSale(${sale.id})"
-                              class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg text-sm">
-                        🗑️ Eliminar
-                      </button>
-                    </div>
-                  </div>
-                `;
-                list.appendChild(div);
-              });
-            }
-            
-            document.getElementById('pendingSalesModal').classList.remove('hidden');
-          }catch(e){
-            console.error(e);
-            alert('❌ Error al cargar ventas en espera');
-          }
-        },
+  const { value: formValues } = await Swal.fire({
+    title: '⏸️ Poner Venta en Espera',
+    html: `
+      <div style="text-align: left;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+          Nombre del cliente (opcional):
+        </label>
+        <input id="swal-customer-name" class="swal2-input" placeholder="Ej: Juan Pérez" style="width: 90%; margin: 0;">
+        
+        <label style="display: block; margin-top: 16px; margin-bottom: 8px; font-weight: 500;">
+          Notas (opcional):
+        </label>
+        <textarea id="swal-notes" class="swal2-textarea" placeholder="Ej: Cliente volverá en 10 minutos" style="width: 90%; margin: 0;" rows="3"></textarea>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#eab308',
+    cancelButtonColor: '#6b7280',
+    customClass: {
+      popup: 'rounded-2xl',
+      confirmButton: 'rounded-lg px-6 py-3',
+      cancelButton: 'rounded-lg px-6 py-3'
+    },
+    preConfirm: () => {
+      return {
+        customerName: document.getElementById('swal-customer-name').value,
+        notes: document.getElementById('swal-notes').value
+      };
+    }
+  });
+
+  if (!formValues) return;
+
+  try {
+    const response = await fetch('/sales-management/hold', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        items: this.cart.map(item => ({
+          id: item.id,
+          qty: item.qty,
+          price: item.price
+        })),
+        customer_name: formValues.customerName,
+        notes: formValues.notes
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.ok) {
+      Swal.fire({
+        icon: 'success',
+        title: '¡Guardado!',
+        text: 'Venta guardada en espera exitosamente',
+        confirmButtonText: 'Perfecto',
+        confirmButtonColor: '#10b981',
+        timer: 2000,
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+      this.clear();
+      this.loadPendingSalesCount();
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message || 'No se pudo guardar la venta',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#ef4444',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error de conexión',
+      text: 'No se pudo conectar con el servidor',
+      confirmButtonText: 'Reintentar',
+      confirmButtonColor: '#ef4444',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
+  }
+},
+
+       async showPendingSales(){
+  try{
+    const r = await fetch('/sales-management/pending',{
+      headers:{
+        'Accept':'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      }
+    });
+    const data = await r.json();
+    
+    if(data.pending_sales.length === 0){
+      Swal.fire({
+        icon: 'info',
+        title: 'Sin ventas en espera',
+        text: 'No hay ventas guardadas en este momento',
+        confirmButtonColor: '#2563eb',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+      return;
+    }
+
+    const salesHtml = data.pending_sales.map(sale => {
+      const time = new Date(sale.created_at).toLocaleTimeString('es-HN',{
+        hour:'2-digit', minute:'2-digit'
+      });
+      
+      return `
+        <div class="border border-gray-200 rounded-lg p-3 mb-2 hover:bg-gray-50">
+          <div class="flex justify-between items-center gap-2">
+            <div class="flex-1 text-left">
+              <div class="font-semibold">${sale.customer_name || 'Sin nombre'}</div>
+              <div class="text-sm text-gray-600">🕐 ${time} • ${sale.items.length} productos</div>
+              <div class="text-lg font-bold text-blue-600">L. ${parseFloat(sale.total).toFixed(2)}</div>
+              ${sale.notes ? `<div class="text-xs text-gray-500 mt-1">📝 ${sale.notes}</div>` : ''}
+            </div>
+            <div class="flex flex-col gap-1">
+              <button onclick="window.posInstance.retrievePendingSale(${sale.id}); Swal.close();"
+                      class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded text-sm whitespace-nowrap">
+                ▶️ Continuar
+              </button>
+              <button onclick="window.posInstance.deletePendingSale(${sale.id});"
+                      class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded text-sm whitespace-nowrap">
+                🗑️ Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    Swal.fire({
+      title: '📋 Ventas en Espera',
+      html: `
+        <div style="max-height: 60vh; overflow-y: auto; padding: 10px;">
+          ${salesHtml}
+        </div>
+      `,
+      showConfirmButton: false,
+      showCloseButton: true,
+      width: '700px',
+      customClass: {
+        popup: 'rounded-2xl',
+        closeButton: 'text-2xl'
+      }
+    });
+
+  }catch(e){
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudieron cargar las ventas en espera',
+      confirmButtonColor: '#ef4444',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
+  }
+},
 
 async retrievePendingSale(id){
   try{
@@ -1492,43 +1645,81 @@ async retrievePendingSale(id){
       cat: item.category || ''
     }));
 
-    document.getElementById('pendingSalesModal').classList.add('hidden');
     this.toast('✅ Venta recuperada');
-
-    // <- NUEVO: bajar el contador porque ya la "sacamos"
     this.loadPendingSalesCount();
 
   }catch(e){
     console.error(e);
-    alert('❌ Error al recuperar venta');
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo recuperar la venta',
+      confirmButtonColor: '#ef4444',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
   }
-}
-,
+},
 
-        async deletePendingSale(id){
-          if(!confirm('¿Eliminar esta venta en espera?')) return;
-          
-          try{
-            const r = await fetch(`/sales-management/pending/${id}`,{
-              method:'DELETE',
-              headers:{
+       async deletePendingSale(id){
+    const result = await Swal.fire({
+        icon: 'question',
+        title: '¿Eliminar venta en espera?',
+        text: 'Esta acción no se puede deshacer',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3',
+            cancelButton: 'rounded-lg px-6 py-3'
+        }
+    });
+    
+    if (!result.isConfirmed) return;
+    
+    try{
+        const r = await fetch(`/sales-management/pending/${id}`,{
+            method:'DELETE',
+            headers:{
                 'Accept':'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-              }
-            });
-            
-            const data = await r.json();
-            if(data.ok){
-              this.toast('✅ Venta eliminada');
-              this.showPendingSales();
-              this.loadPendingSalesCount();
             }
-          }catch(e){
-            console.error(e);
-            alert('❌ Error al eliminar');
-          }
-        },
-
+        });
+        
+        const data = await r.json();
+        if(data.ok){
+            Swal.fire({
+                icon: 'success',
+                title: '¡Eliminado!',
+                text: 'Venta en espera eliminada',
+                timer: 1500,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'rounded-2xl'
+                }
+            });
+            this.showPendingSales();
+            this.loadPendingSalesCount();
+        }
+    }catch(e){
+        console.error(e);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar la venta',
+            confirmButtonColor: '#ef4444',
+            customClass: {
+                popup: 'rounded-2xl',
+                confirmButton: 'rounded-lg px-6 py-3'
+            }
+        });
+    }
+},
         async loadPendingSalesCount(){
           try{
             const r = await fetch('/sales-management/pending',{
@@ -1545,13 +1736,386 @@ async retrievePendingSale(id){
           }
         },
 
-        openReturnModal(){
-          document.getElementById('returnModal').classList.remove('hidden');
-          document.getElementById('returnStep1').classList.remove('hidden');
-          document.getElementById('returnStep2').classList.add('hidden');
-          document.getElementById('returnStep3').classList.add('hidden');
-          document.getElementById('returnError').classList.add('hidden');
-        },
+     async openReturnModal(){
+  const { value: search } = await Swal.fire({
+    title: '🔄 Devolución de Producto',
+    html: `
+      <div style="text-align: left;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+          Buscar producto a devolver:
+        </label>
+        <input id="return-search" class="swal2-input" 
+               placeholder="Código de barras o nombre del producto" 
+               style="width: 90%; margin: 0;">
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: '🔍 Buscar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#2563eb',
+    cancelButtonColor: '#6b7280',
+    customClass: {
+      popup: 'rounded-2xl',
+      confirmButton: 'rounded-lg px-6 py-3',
+      cancelButton: 'rounded-lg px-6 py-3'
+    },
+    preConfirm: () => {
+      const value = document.getElementById('return-search').value;
+      if (!value?.trim()) {
+        Swal.showValidationMessage('Escribe algo para buscar');
+        return false;
+      }
+      return value;
+    }
+  });
+
+  if (!search) return;
+
+  // Buscar el producto
+  try {
+    const r = await fetch(`/sales-management/products/suggest?q=${encodeURIComponent(search)}`, {
+      headers: { 'Accept':'application/json' }
+    });
+    const items = r.ok ? await r.json() : [];
+
+    const exactByName = items.find(p => p.name.toLowerCase() === search.toLowerCase());
+    const exactByCode = items.find(p => (p.barcode || '').toLowerCase() === search.toLowerCase());
+    const chosen = exactByName || exactByCode || null;
+
+    if (chosen) {
+      return this.searchReturnSales(chosen);
+    }
+
+    if (items.length > 0) {
+      return this.showProductSelection(items);
+    }
+
+    // Fallback: buscar por barcode exacto
+    const product = await this.lookupProduct(search);
+    if (!product) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Producto no encontrado',
+        text: 'No se encontró el producto en el catálogo',
+        confirmButtonColor: '#ef4444',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+      return;
+    }
+
+    this.searchReturnSales(product);
+  } catch (e) {
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al buscar el producto',
+      confirmButtonColor: '#ef4444',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
+  }
+
+},
+
+
+
+
+
+async showProductSelection(items){
+  const productsHtml = items.map(p => `
+    <button class="w-full text-left px-3 py-2 hover:bg-blue-50 rounded flex items-center gap-2 border mb-2"
+            onclick="window.posInstance.selectProductForReturn(${JSON.stringify(p).replace(/"/g, '&quot;')}); Swal.close();">
+      <span class="font-medium flex-1">${p.name}</span>
+      <span class="text-xs text-gray-500">${p.barcode ?? ''}</span>
+    </button>
+  `).join('');
+
+  Swal.fire({
+    title: 'Selecciona el producto',
+    html: `<div style="max-height: 400px; overflow-y: auto;">${productsHtml}</div>`,
+    showConfirmButton: false,
+    showCloseButton: true,
+    width: '600px',
+    customClass: {
+      popup: 'rounded-2xl'
+    }
+  });
+},
+
+selectProductForReturn(product){
+  this.searchReturnSales(product);
+},
+
+async searchReturnSales(product){
+  try {
+    const response = await fetch('/sales-management/search-product-in-shift', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({ product_id: product.id })
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sin ventas',
+        text: data.message,
+        confirmButtonColor: '#2563eb',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+      return;
+    }
+
+    this.showSalesForReturn(data.sales, product);
+  } catch (e) {
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al buscar ventas',
+      confirmButtonColor: '#ef4444',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
+  }
+},
+
+async showSalesForReturn(sales, product){
+  const salesHtml = sales.map(sale => {
+    const time = new Date(sale.created_at).toLocaleTimeString('es-HN', {
+      hour: '2-digit', minute: '2-digit'
+    });
+    
+    const cantidad = parseFloat(sale.qty);
+    const esDevolucion = cantidad < 0;
+    const cantidadAbsoluta = Math.abs(cantidad);
+    
+    if (esDevolucion) {
+      return `
+        <div class="border border-red-300 bg-red-50 rounded-lg p-3 mb-2">
+          <div class="text-red-700 font-semibold">🕐 ${time} - Venta #${sale.sale_id}</div>
+          <div class="text-sm text-red-600">${cantidadAbsoluta}x ${sale.product_name} - L. ${parseFloat(sale.total).toFixed(2)}</div>
+          <div class="text-xs text-red-500 mt-1">⚠️ Esta es una devolución registrada</div>
+        </div>
+      `;
+    }
+    
+    const saleData = JSON.stringify(sale).replace(/"/g, '&quot;');
+    const productData = JSON.stringify(product).replace(/"/g, '&quot;');
+    
+    return `
+      <div class="border rounded-lg p-3 mb-2 hover:bg-gray-50">
+        <div class="flex justify-between items-center gap-2">
+          <div class="flex-1 text-left">
+            <div class="font-semibold">🕐 ${time} - Venta #${sale.sale_id}</div>
+            <div class="text-sm text-gray-600">${sale.qty}x ${sale.product_name} - L. ${parseFloat(sale.total).toFixed(2)}</div>
+          </div>
+          <button onclick="window.posInstance.selectSaleForReturnDelayed(${saleData}, ${productData})"
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded text-sm whitespace-nowrap">
+            DEVOLVER
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  Swal.fire({
+    title: 'Ventas de hoy con este producto',
+    html: `<div style="max-height: 400px; overflow-y: auto;">${salesHtml}</div>`,
+    showConfirmButton: false,
+    showCloseButton: true,
+    width: '700px',
+    customClass: {
+      popup: 'rounded-2xl'
+    }
+  });
+},
+
+async selectSaleForReturn(sale, product){
+  const { value: formValues } = await Swal.fire({
+    title: 'Confirmar Devolución',
+    html: `
+      <div style="text-align: left; padding: 10px;">
+        <div style="background: #dbeafe; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+          <div class="font-semibold">Venta #${sale.sale_id}</div>
+          <div class="text-sm">${sale.qty}x ${sale.product_name} - L. ${parseFloat(sale.total).toFixed(2)}</div>
+        </div>
+        
+        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Cantidad a devolver:</label>
+        <input id="return-qty" type="number" min="0.01" step="0.01" max="${sale.qty}" value="${sale.qty}"
+               class="swal2-input" style="width: 90%; margin-bottom: 10px;">
+        <small style="color: #6b7280;">Máximo: ${sale.qty}</small>
+        
+        <label style="display: block; margin-top: 15px; margin-bottom: 5px; font-weight: 500;">Razón de la devolución:</label>
+        <select id="return-reason" class="swal2-select" style="width: 90%; margin-bottom: 15px;">
+          <option value="">Selecciona...</option>
+          <option value="Producto defectuoso">Producto defectuoso</option>
+          <option value="Cliente cambió de opinión">Cliente cambió de opinión</option>
+          <option value="Error al cobrar">Error al cobrar</option>
+          <option value="Producto vencido">Producto vencido</option>
+          <option value="Otro">Otro</option>
+        </select>
+        
+        <div style="background: #dcfce7; border: 2px solid #86efac; border-radius: 8px; padding: 15px; margin-top: 15px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">✅</span>
+            <div>
+              <div style="font-weight: 600; color: #166534; margin-bottom: 4px;">
+                Producto en buen estado
+              </div>
+              <small style="color: #15803d;">
+                El producto regresará al inventario y el dinero se devolverá al cliente
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: '💰 Confirmar Devolución',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#6b7280',
+    width: '600px',
+    customClass: {
+      popup: 'rounded-2xl',
+      confirmButton: 'rounded-lg px-6 py-3',
+      cancelButton: 'rounded-lg px-6 py-3'
+    },
+    preConfirm: () => {
+      const qty = parseFloat(document.getElementById('return-qty').value);
+      const reason = document.getElementById('return-reason').value;
+      
+      if (!qty || qty <= 0) {
+        Swal.showValidationMessage('Cantidad inválida');
+        return false;
+      }
+      if (qty > sale.qty) {
+        Swal.showValidationMessage(`No puedes devolver más de ${sale.qty}`);
+        return false;
+      }
+      if (!reason) {
+        Swal.showValidationMessage('Selecciona una razón');
+        return false;
+      }
+      
+      return { qty, reason, condition: 'good' };
+    }
+  });
+
+  if (!formValues) return;
+
+  await this.processReturn(sale, formValues);
+},
+
+
+
+
+selectSaleForReturnDelayed(sale, product){
+  Swal.close();
+  setTimeout(() => {
+    this.selectSaleForReturn(sale, product);
+  }, 300);
+},
+
+
+
+
+
+async processReturn(sale, { qty, reason, condition }){
+  try {
+    const response = await fetch('/sales-management/return-item', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        sale_id: sale.sale_id,
+        sale_item_id: sale.sale_item_id,
+        qty: qty,
+        return_reason: reason,
+        product_condition: condition
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.ok) {
+      Swal.fire({
+        icon: 'success',
+        title: '¡Devolución procesada!',
+        html: `
+          <div style="text-align: center;">
+            <p>${data.message}</p>
+            <div style="background: #d1fae5; border-radius: 8px; padding: 15px; margin-top: 10px;">
+              <p style="font-size: 20px; font-weight: bold; color: #059669;">
+                💰 Monto devuelto: L. ${data.amount_returned.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        `,
+        confirmButtonText: 'Perfecto',
+        confirmButtonColor: '#10b981',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message || 'No se pudo procesar la devolución',
+        confirmButtonColor: '#ef4444',
+        customClass: {
+          popup: 'rounded-2xl',
+          confirmButton: 'rounded-lg px-6 py-3'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error de conexión',
+      text: 'No se pudo conectar con el servidor',
+      confirmButtonColor: '#ef4444',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3'
+      }
+    });
+  }
+},
+
+
+
+
+
+
+
+
+
 
         async lookupProduct(search){
           try{
@@ -1606,60 +2170,11 @@ async checkExpiredProducts() {
       }
   });
 
-  async function confirmHoldSale() {
-      const customerName = document.getElementById('holdCustomerName').value;
-      const notes = document.getElementById('holdNotes').value;
-      
-      const posApp = window.posInstance;
-      if(!posApp || !posApp.cart || posApp.cart.length === 0){
-          alert('⚠️ No hay productos en el carrito');
-          return;
-      }
-      
-      try {
-          const response = await fetch('/sales-management/hold', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-              },
-              body: JSON.stringify({
-                  items: posApp.cart.map(item => ({
-                      id: item.id,
-                      qty: item.qty,
-                      price: item.price
-                  })),
-                  customer_name: customerName,
-                  notes: notes
-              })
-          });
-          
-          const data = await response.json();
-          
-          if (data.ok) {
-              alert('✅ Venta guardada en espera');
-              posApp.clear();
-              closeHoldModal();
-              posApp.loadPendingSalesCount();
-          } else {
-              alert('❌ Error: ' + data.message);
-          }
-      } catch (error) {
-          console.error('Error:', error);
-          alert('❌ Error al guardar venta en espera');
-      }
-  }
 
-  function closeHoldModal() {
-      document.getElementById('holdSaleModal').classList.add('hidden');
-      document.getElementById('holdCustomerName').value = '';
-      document.getElementById('holdNotes').value = '';
-  }
 
-  function closePendingSalesModal() {
-      document.getElementById('pendingSalesModal').classList.add('hidden');
-  }
+ 
+
+ 
 
  async function searchProductForReturn() {
   const search = document.getElementById('returnProductSearch').value.trim();
@@ -1815,34 +2330,81 @@ async checkExpiredProducts() {
       const reason = document.getElementById('returnReason').value;
       const condition = document.querySelector('input[name="productCondition"]:checked').value;
       
-      if (!qty || qty <= 0) {
-          alert('⚠️ Ingresa una cantidad válida');
-          return;
-      }
-      
-      if (qty > selectedSaleItemForReturn.qty) {
-          alert(`⚠️ No puedes devolver más de ${selectedSaleItemForReturn.qty}`);
-          return;
-      }
-      
-      if (!reason) {
-          alert('⚠️ Selecciona una razón');
-          return;
-      }
+     if (!qty || qty <= 0) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad inválida',
+        text: 'Ingresa una cantidad válida mayor a 0',
+        confirmButtonColor: '#f59e0b',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+        }
+    });
+    return;
+}
+
+if (qty > selectedSaleItemForReturn.qty) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad excedida',
+        text: `No puedes devolver más de ${selectedSaleItemForReturn.qty} unidades`,
+        confirmButtonColor: '#f59e0b',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+        }
+    });
+    return;
+}
+
+if (!reason) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Razón requerida',
+        text: 'Selecciona una razón para la devolución',
+        confirmButtonColor: '#f59e0b',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+        }
+    });
+    return;
+}
       
       const conditionText = condition === 'good' 
           ? 'BUEN ESTADO (regresa al inventario)' 
           : 'MAL ESTADO (NO regresa - MERMA)';
       const total = qty * selectedSaleItemForReturn.price;
       
-      const confirmMsg = 
-          `¿Confirmar devolución?\n\n` +
-          `Cantidad: ${qty}\n` +
-          `Total a devolver: L. ${total.toFixed(2)}\n` +
-          `Estado: ${conditionText}\n\n` +
-          `Esta acción no se puede deshacer.`;
-      
-      if (!confirm(confirmMsg)) return;
+    const result = await Swal.fire({
+    icon: 'question',
+    title: '¿Confirmar devolución?',
+    html: `
+        <div style="text-align: left; padding: 10px;">
+            <div style="background: #f3f4f6; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                <p style="margin: 5px 0;"><strong>Cantidad:</strong> ${qty}</p>
+                <p style="margin: 5px 0;"><strong>Total a devolver:</strong> L. ${total.toFixed(2)}</p>
+                <p style="margin: 5px 0;"><strong>Estado:</strong> ${conditionText}</p>
+            </div>
+            <p style="font-size: 14px; color: #ef4444; margin-top: 10px;">
+                ⚠️ Esta acción no se puede deshacer
+            </p>
+        </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Sí, confirmar devolución',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#6b7280',
+    customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-3',
+        cancelButton: 'rounded-lg px-6 py-3'
+    }
+});
+
+if (!result.isConfirmed) return;
       
       try {
           const response = await fetch('/sales-management/return-item', {
@@ -1864,20 +2426,58 @@ async checkExpiredProducts() {
           const data = await response.json();
           
           if (data.ok) {
-              alert(
-                  data.message + 
-                  '\n\nMonto devuelto: L. ' + data.amount_returned.toFixed(2)
-              );
-              
-              closeReturnModal();
-          } else {
+    Swal.fire({
+        icon: 'success',
+        title: '¡Devolución procesada!',
+        html: `
+            <div style="text-align: center; padding: 10px;">
+                <p style="font-size: 16px; margin-bottom: 10px;">
+                    ${data.message}
+                </p>
+                <div style="background: #d1fae5; border-radius: 8px; padding: 15px; margin-top: 10px;">
+                    <p style="font-size: 20px; font-weight: bold; color: #059669; margin: 0;">
+                        💰 Monto devuelto: L. ${data.amount_returned.toFixed(2)}
+                    </p>
+                </div>
+            </div>
+        `,
+        confirmButtonText: 'Perfecto',
+        confirmButtonColor: '#10b981',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+        }
+    });
+    
+    closeReturnModal();
+} else {
+    Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message || 'No se pudo procesar la devolución',
+        confirmButtonColor: '#ef4444',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+        }
+    });
+} else {
               alert('❌ Error: ' + data.message);
           }
           
-      } catch (error) {
-          console.error('Error:', error);
-          alert('❌ Error al procesar devolución');
-      }
+     } catch (error) {
+    console.error('Error:', error);
+    Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor',
+        confirmButtonColor: '#ef4444',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3'
+        }
+    });
+}
   }
 
   function showReturnError(message) {
@@ -1885,11 +2485,27 @@ async checkExpiredProducts() {
       document.getElementById('returnError').classList.remove('hidden');
   }
 
-  function cancelReturn() {
-      if (confirm('¿Cancelar devolución?')) {
-          closeReturnModal();
-      }
-  }
+async function cancelReturn() {
+    const result = await Swal.fire({
+        icon: 'question',
+        title: '¿Cancelar devolución?',
+        text: 'Se perderán los datos ingresados',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'No, continuar',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        customClass: {
+            popup: 'rounded-2xl',
+            confirmButton: 'rounded-lg px-6 py-3',
+            cancelButton: 'rounded-lg px-6 py-3'
+        }
+    });
+    
+    if (result.isConfirmed) {
+        closeReturnModal();
+    }
+}
 
   function closeReturnModal() {
       document.getElementById('returnModal').classList.add('hidden');
@@ -2065,79 +2681,10 @@ async function searchProductInShiftById(productId) {
       </div>
   </div>
 
-  {{-- Modal: Ventas en espera --}}
-  <div id="pendingSalesModal" 
-       class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-lg bg-white">
-          
-          <div class="flex justify-between items-center pb-3 border-b">
-              <h3 class="text-2xl font-bold text-gray-900">
-                  📋 Ventas en Espera
-              </h3>
-              <button onclick="closePendingSalesModal()" 
-                      class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
-                  &times;
-              </button>
-          </div>
-          
-          <div class="mt-4">
-              <div id="pendingSalesList" class="space-y-3">
-              </div>
-              
-              <div id="noPendingSales" class="hidden text-center py-8 text-gray-500">
-                  <svg class="mx-auto h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-                  </svg>
-                  <p class="text-lg font-medium">No hay ventas en espera</p>
-              </div>
-          </div>
-          
-      </div>
-  </div>
+ 
 
-  {{-- Modal: Devolución --}}
-  <div id="returnModal" 
-       class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-3xl shadow-lg rounded-lg bg-white">
-          
-          <div class="flex justify-between items-center pb-3 border-b">
-              <h3 class="text-2xl font-bold text-gray-900">
-                  🔄 Devolución de Producto
-              </h3>
-              <button onclick="closeReturnModal()" 
-                      class="text-gray-400 hover:text-gray-600 text-3xl font-bold">
-                  &times;
-              </button>
-          </div>
-          
-          <div class="mt-4">
-              
-              <div id="returnStep1">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                      Buscar producto a devolver:
-                  </label>
-                  <div class="flex gap-2">
-                     <input type="text"
-       id="returnProductSearch"
-       placeholder="Código de barras o nombre del producto"
-       class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-       oninput="suggestReturnProducts()"
-       onkeypress="if(event.key==='Enter'){ 
-         const box=document.getElementById('returnProductSuggestions');
-         // Si hay sugerencias abiertas, ignora Enter para no cerrar
-         if(box && !box.classList.contains('hidden')){ event.preventDefault(); return; }
-         searchProductForReturn(); 
-       }">
 
-                             <div id="returnProductSuggestions" class="mt-2 border rounded-lg max-h-56 overflow-y-auto hidden bg-white shadow">
-  <!-- Aquí se inyectan las sugerencias -->
-</div>
-
-                      <button onclick="searchProductForReturn()" 
-                              class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
-                          🔍 Buscar
-                      </button>
+                     
                   </div>
               </div>
               

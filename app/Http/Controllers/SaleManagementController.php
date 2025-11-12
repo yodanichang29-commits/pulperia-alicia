@@ -67,26 +67,49 @@ class SaleManagementController extends Controller
     /**
      * Listar ventas en espera del turno actual
      */
-    public function listPendingSales(Request $request)
-    {
-        $userId = $request->user()->id;
-        $shift = CashShift::openForUser($userId)->first();
-        
-        if (!$shift) {
-            return response()->json(['pending_sales' => []]);
-        }
-        
-        $pendingSales = PendingSale::where('cash_shift_id', $shift->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        return response()->json(['pending_sales' => $pendingSales]);
+    /**
+ * Listar ventas en espera del turno actual
+ */
+public function listPendingSales(Request $request)
+{
+    $userId = $request->user()->id;
+    $shift = CashShift::openForUser($userId)->first();
+    
+    if (!$shift) {
+        return response()->json(['pending_sales' => []]);
     }
+    
+    $pendingSales = PendingSale::where('cash_shift_id', $shift->id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+    
+    // Enriquecer cada venta en espera con los nombres de productos
+    $pendingSales->transform(function ($sale) {
+        // Obtener IDs de productos de los items
+        $productIds = collect($sale->items)->pluck('id')->unique();
+        
+        // Buscar los productos en la base de datos
+        $products = Product::whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+        
+        // Agregar el nombre del producto a cada item
+        $sale->items = collect($sale->items)->map(function ($item) use ($products) {
+            $product = $products->get($item['id']);
+            $item['name'] = $product ? $product->name : 'Producto no encontrado';
+            return $item;
+        })->toArray();
+        
+        return $sale;
+    });
+    
+    return response()->json(['pending_sales' => $pendingSales]);
+}
     
     /**
      * Recuperar venta en espera (para continuar editando)
      */
-   public function retrievePendingSale(Request $request, $id)
+  public function retrievePendingSale(Request $request, $id)
 {
     $userId = $request->user()->id;
 
@@ -94,10 +117,25 @@ class SaleManagementController extends Controller
     $payload = DB::transaction(function () use ($userId, $id) {
         $pendingSale = \App\Models\PendingSale::where('user_id', $userId)->lockForUpdate()->findOrFail($id);
 
+        // Obtener IDs de productos
+        $productIds = collect($pendingSale->items)->pluck('id')->unique();
+        
+        // Buscar los productos en la base de datos
+        $products = Product::whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+        
+        // Enriquecer items con nombres de productos
+        $enrichedItems = collect($pendingSale->items)->map(function ($item) use ($products) {
+            $product = $products->get($item['id']);
+            $item['name'] = $product ? $product->name : 'Producto no encontrado';
+            return $item;
+        })->toArray();
+
         // Copia los datos ANTES de borrar
         $data = [
             'id'            => $pendingSale->id,
-            'items'         => $pendingSale->items,
+            'items'         => $enrichedItems,
             'customer_name' => $pendingSale->customer_name,
             'notes'         => $pendingSale->notes,
             'subtotal'      => $pendingSale->subtotal,
@@ -358,7 +396,7 @@ class SaleManagementController extends Controller
             'sale_item_id'  => 'required|integer|exists:sale_items,id',
             'qty'           => 'required|numeric|min:0.01',
             'return_reason' => 'required|string|max:500',
-            'product_condition' => 'required|in:good,damaged',
+           'product_condition' => 'sometimes|string|in:good',
         ]);
         
         $userId = $request->user()->id;
@@ -409,7 +447,9 @@ class SaleManagementController extends Controller
             ], 422);
         }
         
-        $isGoodCondition = $data['product_condition'] === 'good';
+       // Siempre tratamos las devoluciones como "buen estado"
+$isGoodCondition = true;
+$data['product_condition'] = 'good';
         
         try {
             $returnSaleId = DB::transaction(function () use (
@@ -455,7 +495,7 @@ class SaleManagementController extends Controller
                     'total'           => -$lineTotal,
                     'status'          => Sale::STATUS_RETURNED,
                     'original_sale_id'=> $sale->id,
-                    'return_reason'   => $data['return_reason'] . ' | Condición: ' . ($isGoodCondition ? 'BUENO' : 'DAÑADO'),
+                   'return_reason'   => $data['return_reason'],
                     'cash_received'   => null,
                     'cash_change'     => null,
                 ]);
@@ -493,11 +533,9 @@ class SaleManagementController extends Controller
             return response()->json([
                 'ok' => true,
                 'return_sale_id' => $returnSaleId,
-                'message' => $isGoodCondition 
-                    ? '✅ Devolución procesada. Producto regresó al inventario'
-                    : '✅ Devolución procesada. Producto registrado como MERMA',
+               'message' => '✅ Devolución procesada. El producto regresó al inventario y el dinero fue devuelto',
                 'amount_returned' => $qtyToReturn * $saleItem->price,
-                'returned_to_stock' => $isGoodCondition,
+                
             ], 201);
             
         } catch (\Throwable $e) {
