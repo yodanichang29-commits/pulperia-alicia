@@ -165,7 +165,7 @@
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
                 <!-- Usuario actual -->
                 <div class="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <span class="text-2xl">{{ ['MAMI' => '👩', 'PAPI' => '👨', 'NATALY' => '👧', 'OTROS' => '👤'][Auth::user()->name] ?? '👤' }}</span>
+                    <span class="text-2xl">{{ ['MAMI' => '👩', 'PAPI' => '👨', 'NATALY' => '👸', 'OTROS' => '👤'][Auth::user()->name] ?? '👤' }}</span>
                     <span class="font-semibold text-gray-700">{{ Auth::user()->name }}</span>
                 </div>
 
@@ -244,7 +244,7 @@
             <!-- Usuario actual (móvil) -->
             <div class="px-4 mb-4">
                 <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <span class="text-3xl">{{ ['MAMI' => '👩', 'PAPI' => '👨', 'NATALY' => '👧', 'OTROS' => '👤'][Auth::user()->name] ?? '👤' }}</span>
+                    <span class="text-3xl">{{ ['MAMI' => '👩', 'PAPI' => '👨', 'NATALY' => '👸', 'OTROS' => '👤'][Auth::user()->name] ?? '👤' }}</span>
                     <div>
                         <div class="font-semibold text-gray-800">{{ Auth::user()->name }}</div>
                         <div class="text-sm text-gray-500">{{ Auth::user()->email }}</div>

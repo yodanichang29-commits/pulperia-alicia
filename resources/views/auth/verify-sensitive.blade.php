@@ -69,7 +69,7 @@
 
             <!-- Usuario actual -->
             <div class="flex items-center justify-center gap-3 mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <span class="text-3xl">{{ ['MAMI' => '👩', 'PAPI' => '👨', 'NATALY' => '👧', 'OTROS' => '👤'][Auth::user()->name] ?? '👤' }}</span>
+                <span class="text-3xl">{{ ['MAMI' => '👩', 'PAPI' => '👨', 'NATALY' => '👸', 'OTROS' => '👤'][Auth::user()->name] ?? '👤' }}</span>
                 <div class="text-left">
                     <div class="font-semibold text-gray-800">{{ Auth::user()->name }}</div>
                     <div class="text-sm text-gray-500">Ingresa la contraseña compartida</div>
