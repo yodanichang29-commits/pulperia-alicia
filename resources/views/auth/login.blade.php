@@ -140,7 +140,7 @@
                 <input type="hidden" name="email" value="nataly@pulperia.com">
                 <input type="hidden" name="password" value="">
                 <button type="submit" class="user-card w-full glass-effect rounded-2xl p-8 text-center cursor-pointer group">
-                    <div class="emoji text-7xl mb-4">👧</div>
+                    <div class="emoji text-7xl mb-4">👸</div>
                     <h3 class="text-2xl font-bold text-gray-800 mb-2">NATALY</h3>
                     <div class="w-16 h-1 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full mx-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </button>
