@@ -1117,7 +1117,7 @@
   }
 
   // Si todo está bien, abrir el modal normalmente
-  this.cashGiven = this.grandTotal();
+  this.cashGiven = '';  
   this.openCash = true;
   this.$nextTick(()=> this.$refs.cashInput?.focus());
 },

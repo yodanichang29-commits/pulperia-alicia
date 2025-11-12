@@ -47,10 +47,10 @@
               <tr class="hover:bg-gray-50">
                 <td class="px-4 py-3 text-sm text-gray-900">{{ $turno->usuario }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">
-                  {{ \Carbon\Carbon::parse($turno->opened_at)->format('d/m/Y H:i') }}
+                   {{ \Carbon\Carbon::parse($turno->opened_at)->format('d/m/Y h:i A') }}
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600">
-                  {{ \Carbon\Carbon::parse($turno->closed_at)->format('d/m/Y H:i') }}
+                   {{ \Carbon\Carbon::parse($turno->closed_at)->format('d/m/Y h:i A') }}
                 </td>
                 <td class="px-4 py-3 text-sm text-right text-gray-900">
                   L {{ number_format($turno->opening_float, 2) }}

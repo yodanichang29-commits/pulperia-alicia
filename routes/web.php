@@ -18,6 +18,11 @@ use App\Http\Controllers\InventoryTransactionController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SaleManagementController;
+use App\Http\Controllers\CashMovementController;
+
+
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -184,6 +189,27 @@ Route::middleware('auth')
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->get('/finanzas', [FinanceController::class, 'index'])->name('finanzas.index');
+
+
+
+
+
+
+/*
+|--------------------------------------------------------------------------
+| MOVIMIENTOS DE CAJA
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('movimientos-caja')->name('cash-movements.')->group(function () {
+    Route::get('/',                    [CashMovementController::class, 'index'])->name('index');
+    Route::get('/nuevo',               [CashMovementController::class, 'create'])->name('create');
+    Route::post('/',                   [CashMovementController::class, 'store'])->name('store');
+    Route::get('/{cashMovement}',      [CashMovementController::class, 'show'])->name('show');
+    Route::get('/{cashMovement}/editar', [CashMovementController::class, 'edit'])->name('edit');
+    Route::put('/{cashMovement}',      [CashMovementController::class, 'update'])->name('update');
+    Route::delete('/{cashMovement}',   [CashMovementController::class, 'destroy'])->name('destroy');
+});
+
 
 
 

@@ -10,90 +10,399 @@ use App\Models\Sale;
 use App\Models\ClientPayment;
 use App\Models\Product;
 use App\Models\InventoryTransaction;
+use App\Models\CashMovement;
 
 class FinanceController extends Controller
 {
     public function index(Request $request)
     {
-        // 1) Rango de fechas
-        $end   = $request->filled('end')
+        // ========================================
+        // 1) RANGO DE FECHAS
+        // ========================================
+        $end = $request->filled('end')
             ? Carbon::parse($request->input('end'))->endOfDay()
             : Carbon::today()->endOfDay();
 
         $start = $request->filled('start')
             ? Carbon::parse($request->input('start'))->startOfDay()
-            : Carbon::today()->subDays(29)->startOfDay();
+            : Carbon::now()->startOfMonth()->startOfDay();
 
-        // 2) Ventas por método (del RANGO)
-        $ventasEfectivo = Sale::whereBetween('created_at', [$start,$end])->where('payment','cash')->sum('total');
-        $ventasTarjeta  = Sale::whereBetween('created_at', [$start,$end])->where('payment','card')->sum('total');
-        $ventasTransf   = Sale::whereBetween('created_at', [$start,$end])->where('payment','transfer')->sum('total');
-        $ventasCredito  = Sale::whereBetween('created_at', [$start,$end])->where('payment','credit')->sum('total');
+        // Calcular días del período
+        $diasPeriodo = $start->diffInDays($end) + 1;
 
-        // 3) Abonos de crédito (del RANGO)
-        $abonosCredito  = ClientPayment::whereBetween('created_at', [$start,$end])->sum('amount');
+        // ========================================
+        // 2) ENTRADAS - VENTAS POR MÉTODO
+        // ========================================
+        $ventasEfectivo = Sale::whereBetween('created_at', [$start, $end])
+            ->where('payment', 'cash')->sum('total');
+        
+        $ventasTarjeta = Sale::whereBetween('created_at', [$start, $end])
+            ->where('payment', 'card')->sum('total');
+        
+        $ventasTransf = Sale::whereBetween('created_at', [$start, $end])
+            ->where('payment', 'transfer')->sum('total');
+        
+        $ventasCredito = Sale::whereBetween('created_at', [$start, $end])
+            ->where('payment', 'credit')->sum('total');
 
-        // 4) Inventario (del RANGO) — salidas de caja
-        $noAnulados = function($q) {
-            if (Schema::hasColumn('inventory_transactions','voided')) {
-                $q->where(function($w){ $w->whereNull('voided')->orWhere('voided', false); });
+        // ========================================
+        // 3) ENTRADAS - ABONOS POR MÉTODO DE PAGO
+        // ========================================
+        $abonosEfectivo = ClientPayment::whereBetween('created_at', [$start, $end])
+            ->where('payment_method', 'efectivo')->sum('amount');
+        
+        $abonosTarjeta = ClientPayment::whereBetween('created_at', [$start, $end])
+            ->where('payment_method', 'tarjeta')->sum('amount');
+        
+        $abonosTransferencia = ClientPayment::whereBetween('created_at', [$start, $end])
+            ->where('payment_method', 'transferencia')->sum('amount');
+
+        $abonosTotal = $abonosEfectivo + $abonosTarjeta + $abonosTransferencia;
+
+        // ========================================
+        // 4) ENTRADAS - OTROS INGRESOS
+        // ========================================
+        $otrosIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'ingreso')
+            ->sum('amount');
+
+        $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'ingreso')
+            ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
+            ->groupBy('cat')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        // ========================================
+        // 5) SALIDAS - INVENTARIO
+        // ========================================
+        $noAnulados = function ($q) {
+            if (Schema::hasColumn('inventory_transactions', 'voided')) {
+                $q->where(function ($w) {
+                    $w->whereNull('voided')->orWhere('voided', false);
+                });
             }
         };
 
-        $compras = InventoryTransaction::whereBetween('created_at', [$start,$end])
-            ->where('type','in')->where('reason','purchase')
+        $compras = InventoryTransaction::whereBetween('created_at', [$start, $end])
+            ->where('type', 'in')->where('reason', 'purchase')
             ->tap($noAnulados)->sum('total_cost');
 
-        $mermas = InventoryTransaction::whereBetween('created_at', [$start,$end])
-            ->where('type','out')->whereIn('reason',['waste','damaged','expired'])
+        $mermas = InventoryTransaction::whereBetween('created_at', [$start, $end])
+            ->where('type', 'out')->whereIn('reason', ['waste', 'damaged', 'expired'])
             ->tap($noAnulados)->sum('total_cost');
 
-        // 5) Balance (rango)
-        $entradasCaja = $ventasEfectivo + $ventasTarjeta + $ventasTransf + $abonosCredito;
-        $salidasCaja  = $compras + $mermas;
-        $balance      = $entradasCaja - $salidasCaja;
+        // ========================================
+        // 6) SALIDAS - GASTOS OPERATIVOS
+        // ========================================
+        $gastosOperativos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'egreso')
+            ->sum('amount');
 
-        // 6) Valor actual del inventario (informativo)
-        $costCol = Schema::hasColumn('products','cost') ? 'cost'
-                : (Schema::hasColumn('products','purchase_cost') ? 'purchase_cost' : 'price'); // último recurso
-        $valorInventario = Product::selectRaw("SUM(stock * COALESCE($costCol,0)) as total")->value('total') ?? 0;
+        $gastosOperativosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'egreso')
+            ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
+            ->groupBy('cat')
+            ->orderBy('total', 'desc')
+            ->get();
 
-        // 7) Ventas por día (tabla)
-        $driver   = DB::getDriverName(); // sqlite | mysql | etc.
+        // Top 5 gastos más grandes
+        $top5Gastos = $gastosOperativosPorCategoria->take(5);
+
+        // ========================================
+        // 7) TOTALES Y BALANCE
+        // ========================================
+        $totalVentas = $ventasEfectivo + $ventasTarjeta + $ventasTransf;
+        $totalEntradas = $totalVentas + $abonosTotal + $otrosIngresos;
+        $totalSalidas = $compras + $mermas + $gastosOperativos;
+        $balance = $totalEntradas - $totalSalidas;
+
+        // ========================================
+        // 8) GANANCIAS
+        // ========================================
+        $gananciaBruta = $totalVentas - ($compras + $mermas);
+        $gananciaNeta = $gananciaBruta - $gastosOperativos;
+        $margenGanancia = $totalVentas > 0 ? ($gananciaBruta / $totalVentas) * 100 : 0;
+
+        // ========================================
+        // 9) INFORMACIÓN ADICIONAL
+        // ========================================
+       // ========================================
+// 9) INFORMACIÓN ADICIONAL
+// ========================================
+$costCol = Schema::hasColumn('products', 'cost') ? 'cost'
+        : (Schema::hasColumn('products', 'purchase_cost') ? 'purchase_cost' : 'price');
+$valorInventario = Product::selectRaw("SUM(stock * COALESCE($costCol,0)) as total")->value('total') ?? 0;
+
+// Por cobrar: Total acumulado histórico de créditos pendientes
+$totalVentasCredito = Sale::where('payment', 'credit')->sum('total');
+$totalAbonado = ClientPayment::sum('amount');
+$porCobrar = max(0, $totalVentasCredito - $totalAbonado);
+
+$capitalTotal = $balance + $valorInventario + $porCobrar;
+
+
+
+        // ========================================
+        // 10) PROYECCIÓN DEL MES
+        // ========================================
+        $hoy = Carbon::today();
+        $finMes = $hoy->copy()->endOfMonth();
+        $diasRestantes = $hoy->diffInDays($finMes);
+        $diasTranscurridos = $hoy->day;
+
+        $promedioEntradas = $diasTranscurridos > 0 ? $totalEntradas / $diasTranscurridos : 0;
+        $promedioSalidas = $diasTranscurridos > 0 ? $totalSalidas / $diasTranscurridos : 0;
+
+        $proyeccionEntradas = $totalEntradas + ($promedioEntradas * $diasRestantes);
+        $proyeccionSalidas = $totalSalidas + ($promedioSalidas * $diasRestantes);
+        $proyeccionBalance = $proyeccionEntradas - $proyeccionSalidas;
+
+        // ========================================
+        // 11) COMPARACIÓN CON PERÍODO ANTERIOR
+        // ========================================
+        $prevStart = $start->copy()->subDays($diasPeriodo);
+        $prevEnd = $end->copy()->subDays($diasPeriodo);
+
+        $prevVentas = Sale::whereBetween('created_at', [$prevStart, $prevEnd])
+            ->whereIn('payment', ['cash', 'card', 'transfer'])
+            ->sum('total');
+
+        $prevAbonos = ClientPayment::whereBetween('created_at', [$prevStart, $prevEnd])
+            ->sum('amount');
+
+        $prevOtrosIngresos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
+            ->where('type', 'ingreso')
+            ->sum('amount');
+
+        $prevEntradas = $prevVentas + $prevAbonos + $prevOtrosIngresos;
+
+        $prevCompras = InventoryTransaction::whereBetween('created_at', [$prevStart, $prevEnd])
+            ->where('type', 'in')->where('reason', 'purchase')
+            ->tap($noAnulados)->sum('total_cost');
+
+        $prevMermas = InventoryTransaction::whereBetween('created_at', [$prevStart, $prevEnd])
+            ->where('type', 'out')->whereIn('reason', ['waste', 'damaged', 'expired'])
+            ->tap($noAnulados)->sum('total_cost');
+
+        $prevGastos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
+            ->where('type', 'egreso')
+            ->sum('amount');
+
+        $prevSalidas = $prevCompras + $prevMermas + $prevGastos;
+        $prevBalance = $prevEntradas - $prevSalidas;
+        $prevGananciaBruta = $prevVentas - ($prevCompras + $prevMermas);
+
+
+
+$prevBalance = $prevEntradas - $prevSalidas;
+$prevGananciaBruta = $prevVentas - ($prevCompras + $prevMermas);
+
+// Comparación para las 3 tarjetas adicionales
+$prevValorInventario = $valorInventario; // El inventario es el valor actual
+
+// Por cobrar al inicio del período anterior
+$totalVentasCreditoPrev = Sale::where('payment', 'credit')
+    ->where('created_at', '<', $prevStart)
+    ->sum('total');
+$totalAbonadoPrev = ClientPayment::where('created_at', '<', $prevStart)
+    ->sum('amount');
+$prevPorCobrar = max(0, $totalVentasCreditoPrev - $totalAbonadoPrev);
+
+// Capital anterior
+$prevCapitalTotal = $prevBalance + $prevValorInventario + $prevPorCobrar;
+
+// Calcular cambios porcentuales
+$cambioEntradas = $prevEntradas > 0 ? (($totalEntradas - $prevEntradas) / $prevEntradas) * 100 : 0;
+$cambioSalidas = $prevSalidas > 0 ? (($totalSalidas - $prevSalidas) / $prevSalidas) * 100 : 0;
+$cambioBalance = $prevBalance != 0 ? (($balance - $prevBalance) / abs($prevBalance)) * 100 : 0;
+$cambioGanancia = $prevGananciaBruta != 0 ? (($gananciaBruta - $prevGananciaBruta) / abs($prevGananciaBruta)) * 100 : 0;
+
+// Cambios para las 3 tarjetas adicionales
+$cambioInventario = 0; // El inventario no tiene cambio temporal
+$cambioPorCobrar = $prevPorCobrar > 0 ? (($porCobrar - $prevPorCobrar) / $prevPorCobrar) * 100 : 0;
+$cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / $prevCapitalTotal) * 100 : 0;
+
+
+
+        // Calcular cambios porcentuales
+        $cambioEntradas = $prevEntradas > 0 ? (($totalEntradas - $prevEntradas) / $prevEntradas) * 100 : 0;
+        $cambioSalidas = $prevSalidas > 0 ? (($totalSalidas - $prevSalidas) / $prevSalidas) * 100 : 0;
+        $cambioBalance = $prevBalance != 0 ? (($balance - $prevBalance) / abs($prevBalance)) * 100 : 0;
+        $cambioGanancia = $prevGananciaBruta != 0 ? (($gananciaBruta - $prevGananciaBruta) / abs($prevGananciaBruta)) * 100 : 0;
+
+        // ========================================
+        // 12) ALERTAS INTELIGENTES
+        // ========================================
+        $alertas = [];
+
+        // Alerta si los gastos aumentaron más del 20%
+        if ($cambioSalidas > 20) {
+            $alertas[] = [
+                'tipo' => 'warning',
+                'icono' => '⚠️',
+                'mensaje' => "Tus gastos aumentaron " . number_format($cambioSalidas, 1) . "% comparado con el período anterior"
+            ];
+        }
+
+        // Alerta si el balance es negativo
+        if ($balance < 0) {
+            $alertas[] = [
+                'tipo' => 'danger',
+                'icono' => '🚨',
+                'mensaje' => "Balance negativo: Estás gastando más de lo que estás ganando"
+            ];
+        }
+
+        // Alerta si las ventas bajaron más del 10%
+        $cambioVentas = $prevVentas > 0 ? (($totalVentas - $prevVentas) / $prevVentas) * 100 : 0;
+        if ($cambioVentas < -10) {
+            $alertas[] = [
+                'tipo' => 'warning',
+                'icono' => '📉',
+                'mensaje' => "Tus ventas bajaron " . number_format(abs($cambioVentas), 1) . "% vs período anterior"
+            ];
+        }
+
+        // Alerta positiva si todo va bien
+        if ($balance > 0 && $cambioBalance > 10) {
+            $alertas[] = [
+                'tipo' => 'success',
+                'icono' => '🎉',
+                'mensaje' => "¡Excelente! Tu balance mejoró " . number_format($cambioBalance, 1) . "% vs período anterior"
+            ];
+        }
+
+        // Alerta si la proyección es negativa
+        if ($proyeccionBalance < 0 && $balance > 0) {
+            $alertas[] = [
+                'tipo' => 'warning',
+                'icono' => '⚠️',
+                'mensaje' => "Si sigues a este ritmo, terminarás el mes con balance negativo"
+            ];
+        }
+
+        // ========================================
+        // 13) DATOS PARA GRÁFICAS
+        // ========================================
+        
+        // Gráfica de entradas vs salidas por día
+        $driver = DB::getDriverName();
         $dateExpr = $driver === 'sqlite' ? "DATE(created_at)" : "DATE(created_at)";
+
         $ventasPorDia = Sale::selectRaw("$dateExpr as fecha, SUM(total) as total")
-            ->whereBetween('created_at', [$start,$end])
-            ->groupBy('fecha')->orderBy('fecha')->get();
+            ->whereBetween('created_at', [$start, $end])
+            ->whereIn('payment', ['cash', 'card', 'transfer'])
+            ->groupBy('fecha')
+            ->orderBy('fecha')
+            ->get()
+            ->keyBy('fecha');
 
-        // 8) Ventas por mes (últimos 12)
-        $monthExpr   = $driver === 'sqlite' ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')";
-        $last12Start = Carbon::now()->startOfMonth()->subMonths(11);
-        $ventasPorMes = Sale::selectRaw("$monthExpr as ym, SUM(total) as total")
-            ->where('created_at','>=',$last12Start)
-            ->groupBy('ym')->orderBy('ym')->get();
+        // Gastos por día
+        $gastosPorDia = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'egreso')
+            ->selectRaw('date as fecha, SUM(amount) as total')
+            ->groupBy('fecha')
+            ->orderBy('fecha')
+            ->get()
+            ->keyBy('fecha');
 
-        return view('finanzas.index', [
-            'start' => $start->toDateString(),
-            'end'   => $end->toDateString(),
+        // Combinar para la gráfica
+        $datosGrafica = [];
+        $periodo = Carbon::parse($start);
+        while ($periodo <= $end) {
+            $fecha = $periodo->toDateString();
+            $datosGrafica[] = [
+                'fecha' => $periodo->format('d/m'),
+                'entradas' => $ventasPorDia->get($fecha)->total ?? 0,
+                'salidas' => $gastosPorDia->get($fecha)->total ?? 0,
+            ];
+            $periodo->addDay();
+        }
 
-            // Verde (entra a caja)
-            'ventasEfectivo' => (float)$ventasEfectivo,
-            'ventasTarjeta'  => (float)$ventasTarjeta,
-            'ventasTransf'   => (float)$ventasTransf,
-            'abonosCredito'  => (float)$abonosCredito,
+        // ========================================
+        // RETORNAR VISTA CON TODOS LOS DATOS
+        // ========================================
+        return view('finanzas.index', compact(
+            'start',
+            'end',
+            'diasPeriodo',
+            
+            // Ventas
+            'ventasEfectivo',
+            'ventasTarjeta',
+            'ventasTransf',
+            'ventasCredito',
+            'totalVentas',
+            
+            // Abonos desglosados
+            'abonosEfectivo',
+            'abonosTarjeta',
+            'abonosTransferencia',
+            'abonosTotal',
+            
+            // Otros ingresos
+            'otrosIngresos',
+            'otrosIngresosPorCategoria',
+            
+            // Inventario
+            'compras',
+            'mermas',
+            
+            // Gastos
+            'gastosOperativos',
+            'gastosOperativosPorCategoria',
+            'top5Gastos',
+            
+            // Totales
+            'totalEntradas',
+            'totalSalidas',
+            'balance',
+            
+            // Ganancias
+            'gananciaBruta',
+            'gananciaNeta',
+            'margenGanancia',
+            
+            // Info adicional
+            'valorInventario',
+            'porCobrar',
+            'capitalTotal',
 
-            // Rojo (no entra o son salidas)
-            'ventasCredito'  => (float)$ventasCredito,
-            'compras'        => (float)$compras,
-            'mermas'         => (float)$mermas,
 
-            'entradasCaja'   => (float)$entradasCaja,
-            'salidasCaja'    => (float)$salidasCaja,
-            'balance'        => (float)$balance,
-            'valorInventario'=> (float)$valorInventario,
 
-            'ventasPorDia'   => $ventasPorDia,
-            'ventasPorMes'   => $ventasPorMes,
-        ]);
+ // AGREGAR ESTAS 3 NUEVAS:
+    'prevValorInventario',
+    'prevPorCobrar',
+    'prevCapitalTotal',
+    'cambioInventario',
+    'cambioPorCobrar',
+    'cambioCapital',
+
+
+
+            
+            // Proyección
+            'proyeccionEntradas',
+            'proyeccionSalidas',
+            'proyeccionBalance',
+            'diasRestantes',
+            
+            // Comparación
+            'prevEntradas',
+            'prevSalidas',
+            'prevBalance',
+            'prevGananciaBruta',
+            'cambioEntradas',
+            'cambioSalidas',
+            'cambioBalance',
+            'cambioGanancia',
+            
+            // Alertas
+            'alertas',
+            
+            // Gráficas
+            'datosGrafica'
+        ));
     }
 }
