@@ -100,11 +100,17 @@ public function edit(Product $product)
 
 
 
+/**
+ * Buscar productos por nombre (autocomplete)
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse
+ */
 public function buscar(Request $request)
 {
     $term = $request->get('q');
     $results = \App\Models\Product::where('name', 'like', "%{$term}%")
-        ->select('id', 'name', 'codigo', 'supplier', 'purchase_price')
+        ->select('id', 'name', 'barcode', 'provider_id', 'purchase_price', 'price', 'stock')
         ->orderBy('name')
         ->take(10)
         ->get();

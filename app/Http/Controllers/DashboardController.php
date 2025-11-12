@@ -490,44 +490,6 @@ $hourly = DB::table('sales')
 
 
 
-// --- Alertas de productos (una sola fuente de verdad) ---
-$today = \Carbon\Carbon::today()->toDateString();
-$in30  = \Carbon\Carbon::today()->addDays(30)->toDateString();
-
-// Bajo stock
-$lowStock = DB::table('products')
-    ->where('active', 1)
-    ->whereNotNull('min_stock')
-    ->where('min_stock', '>', 0)
-    ->whereColumn('stock', '<', 'min_stock')
-    ->select('id','name','stock','min_stock','expires_at','provider_id')
-    ->orderByRaw('(min_stock - stock) DESC')
-    ->get();
-
-// Vencidos (fecha < hoy)
-$expired = DB::table('products')
-    ->whereNotNull('expires_at')
-    ->whereDate('expires_at','<',$today)
-    ->select('id','name','stock','expires_at','provider_id')
-    ->orderBy('expires_at')
-    ->get();
-
-// Por vencer (hoy..+30)
-$expiring = DB::table('products')
-    ->whereNotNull('expires_at')
-    ->whereDate('expires_at','>=',$today)
-    ->whereDate('expires_at','<=',$in30)
-    ->select('id','name','stock','expires_at','provider_id')
-    ->orderBy('expires_at')
-    ->get();
-
-// Contadores para tarjetas (basados en LAS MISMAS colecciones)
-$lowStockCount = $lowStock->count();
-$expiredCount  = $expired->count();
-$expiringCount = $expiring->count();
-
-
-
 
 
 
