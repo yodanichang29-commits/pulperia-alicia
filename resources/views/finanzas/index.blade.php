@@ -177,9 +177,9 @@
                         <span class="text-xs font-semibold text-gray-600 block mb-1">vs período anterior</span>
                         <span class="text-2xl font-black {{ $cambioCompras > 0 ? 'text-orange-700' : ($cambioCompras < 0 ? 'text-emerald-700' : 'text-gray-600') }}">
                             @if($cambioCompras > 0)
-                                📈 ↑{{ number_format(abs($cambioCompras), 1) }}%
+                                📈 {{ number_format(abs($cambioCompras), 1) }}%
                             @elseif($cambioCompras < 0)
-                                📉 ↓{{ number_format(abs($cambioCompras), 1) }}%
+                                📉 {{ number_format(abs($cambioCompras), 1) }}%
                             @else
                                 ➡️ Sin cambio
                             @endif

@@ -236,11 +236,11 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
 
 
         // Calcular cambios porcentuales
-        $cambioEntradas = $prevEntradas > 0 ? (($totalEntradas - $prevEntradas) / $prevEntradas) * 100 : 0;
-        $cambioSalidas = $prevSalidas > 0 ? (($totalSalidas - $prevSalidas) / $prevSalidas) * 100 : 0;
+        $cambioEntradas = $prevEntradas > 0 ? (($totalEntradas - $prevEntradas) / $prevEntradas) * 100 : ($totalEntradas > 0 ? 100 : 0);
+        $cambioSalidas = $prevSalidas > 0 ? (($totalSalidas - $prevSalidas) / $prevSalidas) * 100 : ($totalSalidas > 0 ? 100 : 0);
         $cambioBalance = $prevBalance != 0 ? (($balance - $prevBalance) / abs($prevBalance)) * 100 : 0;
-        $cambioGanancia = $prevGananciaBruta != 0 ? (($gananciaBruta - $prevGananciaBruta) / abs($prevGananciaBruta)) * 100 : 0;
-        $cambioCompras = $prevCompras > 0 ? (($compras - $prevCompras) / $prevCompras) * 100 : 0;
+        $cambioGanancia = $prevGananciaBruta != 0 ? (($gananciaBruta - $prevGananciaBruta) / abs($prevGananciaBruta)) * 100 : ($gananciaBruta > 0 ? 100 : 0);
+        $cambioCompras = $prevCompras > 0 ? (($compras - $prevCompras) / $prevCompras) * 100 : ($compras > 0 ? 100 : 0);
 
         // ========================================
         // 12) ALERTAS INTELIGENTES
@@ -309,7 +309,7 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             ->get()
             ->keyBy('fecha');
 
-        // Gastos por día
+        // Gastos operativos por día
         $gastosPorDia = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'egreso')
             ->selectRaw('date as fecha, SUM(amount) as total')
@@ -318,15 +318,29 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             ->get()
             ->keyBy('fecha');
 
-        // Combinar para la gráfica
+        // Compras de mercancía por día
+        $comprasPorDia = InventoryTransaction::selectRaw("$dateExpr as fecha, SUM(total_cost) as total")
+            ->whereBetween('created_at', [$start, $end])
+            ->where('type', 'in')
+            ->where('reason', 'purchase')
+            ->tap($noAnulados)
+            ->groupBy('fecha')
+            ->orderBy('fecha')
+            ->get()
+            ->keyBy('fecha');
+
+        // Combinar para la gráfica (salidas = gastos operativos + compras de mercancía)
         $datosGrafica = [];
         $periodo = Carbon::parse($start);
         while ($periodo <= $end) {
             $fecha = $periodo->toDateString();
+            $gastos = $gastosPorDia->get($fecha)->total ?? 0;
+            $comprasDia = $comprasPorDia->get($fecha)->total ?? 0;
+
             $datosGrafica[] = [
                 'fecha' => $periodo->format('d/m'),
                 'entradas' => $ventasPorDia->get($fecha)->total ?? 0,
-                'salidas' => $gastosPorDia->get($fecha)->total ?? 0,
+                'salidas' => $gastos + $comprasDia,
             ];
             $periodo->addDay();
         }
