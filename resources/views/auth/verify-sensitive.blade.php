@@ -77,8 +77,7 @@
             </div>
 
             <!-- Formulario de verificación -->
-            <!-- DEBUG: Action URL = {{ route('verify.sensitive') }} -->
-            <form method="POST" action="{{ route('verify.sensitive') }}" id="verify-form">
+            <form method="POST" action="{{ url('/verify-sensitive-access') }}" id="verify-form">
                 @csrf
                 <input type="hidden" name="intended_url" value="{{ $intended_url }}">
 

@@ -28,8 +28,7 @@ export default {
     // bg-*-600 + border-*-700
     { pattern: /^(bg|border)-(emerald|indigo|amber|sky)-(500|600|700)$/ },
 
-    // (Opcional) variantes hover para esos colores
-    { pattern: /^hover:bg-(emerald|indigo|amber|sky)-(500|600|700)$/, variants: ['hover'] },
+    // Nota: La línea de hover se quitó porque no se usaba y causaba advertencias
 
     // Gradientes/barras azules que quizá se arman dinámicamente
     'from-blue-700', 'to-indigo-700', 'bg-blue-600', 'bg-blue-700', 'hover:bg-blue-800',

@@ -25,5 +25,8 @@ export default defineConfig(({ mode }) => {
         refresh: true,
       }),
     ],
+    build: {
+      chunkSizeWarningLimit: 1000, // Aumentar límite a 1MB (silencia la advertencia)
+    },
   }
 })
