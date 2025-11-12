@@ -42,15 +42,17 @@
  
 
     <body class="font-sans antialiased">
-<div class="min-h-screen bg-gray-100 pt-14 sm:pt-16">
+        <div class="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 pt-14 sm:pt-20">
 
                 @include('layouts.navigation')
 
-            <!-- Page Heading -->
+            <!-- Page Heading - MÁS AMIGABLE -->
             @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
+                <header class="bg-gradient-to-r from-white via-purple-50 to-pink-50 shadow-md border-b-2 border-purple-100">
+                    <div class="max-w-7xl mx-auto py-6 px-6 sm:px-8 lg:px-10">
+                        <div class="text-2xl font-bold text-gray-800">
+                            {{ $header }}
+                        </div>
                     </div>
                 </header>
             @endisset
