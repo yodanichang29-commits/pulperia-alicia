@@ -22,9 +22,9 @@ class InventoryTransactionController extends Controller
     $type = $request->get('type');
     $providerId = $request->get('provider_id'); // <-- filtro nuevo
 
-    // Consulta principal
+    // Consulta principal con eager loading para evitar N+1
     $query = \App\Models\InventoryTransaction::query()
-        ->with(['user', 'provider'])
+        ->with(['user', 'provider', 'items.product'])
         ->when($from, fn($q) => $q->whereDate('moved_at', '>=', $from))
         ->when($to, fn($q) => $q->whereDate('moved_at', '<=', $to))
         ->when($type, fn($q) => $q->where('type', $type))
@@ -218,12 +218,5 @@ public function void(InventoryTransaction $transaction)
 
     return back()->with('success', 'Movimiento anulado y stock revertido.');
 }
-
-
-public function voider()
-{
-    return $this->belongsTo(User::class, 'voided_by');
-}
-
 
 }

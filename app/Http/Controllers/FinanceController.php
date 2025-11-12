@@ -14,6 +14,16 @@ use App\Models\CashMovement;
 
 class FinanceController extends Controller
 {
+    /**
+     * Panel de finanzas con análisis completo del negocio
+     *
+     * Calcula: ventas, abonos, otros ingresos, compras, mermas, gastos,
+     * balance, ganancias, proyecciones, comparaciones con período anterior,
+     * alertas inteligentes y datos para gráficas
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
         // ========================================

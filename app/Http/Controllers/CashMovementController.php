@@ -11,7 +11,12 @@ use Carbon\Carbon;
 class CashMovementController extends Controller
 {
     /**
-     * Mostrar lista de movimientos con filtros y estadísticas.
+     * Mostrar lista de movimientos con filtros, estadísticas y comparaciones
+     *
+     * Incluye: total de ingresos y egresos por categoría, comparación con mes anterior
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
      */
     public function index(Request $request)
     {
@@ -131,7 +136,9 @@ class CashMovementController extends Controller
     }
 
     /**
-     * Mostrar formulario para crear nuevo movimiento.
+     * Mostrar formulario para crear nuevo movimiento de caja
+     *
+     * @return \Illuminate\View\View
      */
     public function create()
     {
@@ -166,7 +173,10 @@ class CashMovementController extends Controller
     }
 
     /**
-     * Guardar nuevo movimiento.
+     * Guardar nuevo movimiento de caja con validaciones y archivo opcional
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -220,7 +230,10 @@ class CashMovementController extends Controller
     }
 
     /**
-     * Mostrar detalle de un movimiento.
+     * Mostrar detalle de un movimiento de caja
+     *
+     * @param CashMovement $cashMovement
+     * @return \Illuminate\View\View
      */
     public function show(CashMovement $cashMovement)
     {
@@ -230,7 +243,10 @@ class CashMovementController extends Controller
     }
 
     /**
-     * Mostrar formulario para editar movimiento.
+     * Mostrar formulario para editar movimiento de caja
+     *
+     * @param CashMovement $cashMovement
+     * @return \Illuminate\View\View
      */
     public function edit(CashMovement $cashMovement)
     {
@@ -266,7 +282,11 @@ class CashMovementController extends Controller
     }
 
     /**
-     * Actualizar movimiento.
+     * Actualizar movimiento de caja existente
+     *
+     * @param Request $request
+     * @param CashMovement $cashMovement
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, CashMovement $cashMovement)
     {
@@ -312,7 +332,10 @@ class CashMovementController extends Controller
     }
 
     /**
-     * Eliminar movimiento.
+     * Eliminar movimiento de caja y su archivo asociado
+     *
+     * @param CashMovement $cashMovement
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(CashMovement $cashMovement)
     {

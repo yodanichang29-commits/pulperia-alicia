@@ -14,8 +14,15 @@ use App\Models\InventoryMovement;
 
 class CajaController extends Controller
 {
-    /** Vista principal de la caja. */
-public function index()
+    /**
+     * Vista principal de la caja (punto de venta)
+     *
+     * Muestra los productos disponibles ordenados por más vendidos del mes actual
+     * y las categorías para filtrado
+     *
+     * @return \Illuminate\View\View
+     */
+    public function index()
 {
     // ✅ OBTENER PRODUCTOS ORDENADOS POR MÁS VENDIDOS DEL MES ACTUAL
     // Compatible con SQLite
@@ -49,7 +56,12 @@ public function index()
     return view('caja.index', compact('products','categories'));
 }
 
-    /** Búsqueda por código de barras. */
+    /**
+     * Buscar producto por código de barras
+     *
+     * @param string $code Código de barras del producto
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function barcode(string $code)
     {
         $p = Product::where('barcode', $code)->first();
@@ -66,7 +78,15 @@ public function index()
         ]);
     }
 
-    /** Registrar un cobro/venta. */
+    /**
+     * Registrar una venta completa con validaciones de stock y turno
+     *
+     * Valida stock disponible, fecha de vencimiento, requiere turno abierto,
+     * crea la venta, rebaja stock y registra movimientos de inventario
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function charge(Request $request)
     {
         $userId = $request->user()->id;
@@ -224,7 +244,12 @@ public function index()
         }
     }
 
-    /** Buscar clientes (POS) */
+    /**
+     * Buscar clientes para el punto de venta (autocompletado)
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function clients(Request $request)
     {
         $q = trim((string)$request->query('q', ''));
@@ -245,7 +270,14 @@ public function index()
         return response()->json($clients);
     }
 
-    /** Crear cliente rápido (POS) */
+    /**
+     * Crear cliente rápido desde el punto de venta
+     *
+     * Si el teléfono ya existe, devuelve el cliente existente
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function storeClient(Request $request)
     {
         $data = $request->validate([
