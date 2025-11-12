@@ -240,6 +240,7 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
         $cambioSalidas = $prevSalidas > 0 ? (($totalSalidas - $prevSalidas) / $prevSalidas) * 100 : 0;
         $cambioBalance = $prevBalance != 0 ? (($balance - $prevBalance) / abs($prevBalance)) * 100 : 0;
         $cambioGanancia = $prevGananciaBruta != 0 ? (($gananciaBruta - $prevGananciaBruta) / abs($prevGananciaBruta)) * 100 : 0;
+        $cambioCompras = $prevCompras > 0 ? (($compras - $prevCompras) / $prevCompras) * 100 : 0;
 
         // ========================================
         // 12) ALERTAS INTELIGENTES
@@ -403,10 +404,12 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             'prevSalidas',
             'prevBalance',
             'prevGananciaBruta',
+            'prevCompras',
             'cambioEntradas',
             'cambioSalidas',
             'cambioBalance',
             'cambioGanancia',
+            'cambioCompras',
             
             // Alertas
             'alertas',
