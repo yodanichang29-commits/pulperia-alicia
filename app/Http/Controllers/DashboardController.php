@@ -399,17 +399,19 @@ if ($pmTotal === 0) {
 
 
 
-        // 9) Proveedores que más “llegan” (por catálogo activo)
-   $providersTop = DB::table('products as p')
-    ->join('providers as pr','pr.id','=','p.provider_id')
-    ->when(DB::table('providers')->where('active',1)->exists(), function($q){
-        $q->where('pr.active',1);
-    })
-    ->groupBy('pr.id','pr.name')
-    ->selectRaw('pr.name, COUNT(p.id) as productos_activos')
-    ->orderByDesc('productos_activos')
-    ->limit(10)
-    ->get();
+        // 9) Proveedores que VINIERON en el rango (hicieron entregas)
+        // Basado en inventory_transactions (ingresos de mercancía)
+        $providersTop = DB::table('inventory_transactions as it')
+            ->join('products as p', 'p.id', '=', 'it.product_id')
+            ->join('providers as pr', 'pr.id', '=', 'p.provider_id')
+            ->where('it.type', 'in')
+            ->where('it.reason', 'purchase')
+            ->whereBetween('it.created_at', [$start, $end])
+            ->groupBy('pr.id', 'pr.name')
+            ->selectRaw('pr.name, COUNT(DISTINCT it.id) as entregas')
+            ->orderByDesc('entregas')
+            ->limit(10)
+            ->get();
 
 
 

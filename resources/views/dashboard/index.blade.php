@@ -1,8 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
+@section('title', 'Inicio')
 @php
-    // Valor por defecto si no viene del controlador (evita el error)
     $range = $range ?? [
         'start' => now()->startOfMonth()->toDateString(),
         'end'   => now()->endOfMonth()->toDateString(),
@@ -11,254 +10,213 @@
 @endphp
 
 @section('content')
-<div class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+<div class="px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-  {{-- Filtros de rango --}}
-  <form method="GET" class="flex flex-wrap gap-2 items-end">
-    <div>
-      <label class="text-sm font-medium">Rango</label>
-      <select name="range" class="border rounded-lg px-3 py-2">
-        @php $mode = request('range','this_month'); @endphp
-        <option value="today" {{ $mode=='today'?'selected':'' }}>Hoy</option>
-        <option value="yesterday" {{ $mode=='yesterday'?'selected':'' }}>Ayer</option>
-        <option value="this_month" {{ $mode=='this_month'?'selected':'' }}>Este mes</option>
-        <option value="last_month" {{ $mode=='last_month'?'selected':'' }}>Mes pasado</option>
-        <option value="custom" {{ $mode=='custom'?'selected':'' }}>Personalizado</option>
-      </select>
+  {{-- FILTROS DE FECHA - MÁS GRANDES Y COLORIDOS --}}
+  <form method="GET" class="bg-gradient-to-r from-blue-100 to-purple-100 rounded-3xl p-6 shadow-xl border-4 border-purple-200">
+    <div class="flex flex-wrap gap-4 items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label class="text-lg font-bold text-gray-800 mb-2 block">📅 Periodo</label>
+        <select name="range" class="w-full border-2 border-purple-300 rounded-xl px-4 py-3 text-base font-semibold focus:border-purple-500 focus:ring-4 focus:ring-purple-200">
+          @php $mode = request('range','this_month'); @endphp
+          <option value="today" {{ $mode=='today'?'selected':'' }}>Hoy</option>
+          <option value="yesterday" {{ $mode=='yesterday'?'selected':'' }}>Ayer</option>
+          <option value="this_month" {{ $mode=='this_month'?'selected':'' }}>Este mes</option>
+          <option value="last_month" {{ $mode=='last_month'?'selected':'' }}>Mes pasado</option>
+          <option value="custom" {{ $mode=='custom'?'selected':'' }}>Personalizado</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[180px]">
+        <label class="text-lg font-bold text-gray-800 mb-2 block">Desde</label>
+        <input type="date" name="start" value="{{ \Illuminate\Support\Str::of($range['start'])->substr(0,10) }}"
+               class="w-full border-2 border-purple-300 rounded-xl px-4 py-3 text-base font-semibold focus:border-purple-500 focus:ring-4 focus:ring-purple-200">
+      </div>
+      <div class="flex-1 min-w-[180px]">
+        <label class="text-lg font-bold text-gray-800 mb-2 block">Hasta</label>
+        <input type="date" name="end" value="{{ \Illuminate\Support\Str::of($range['end'])->substr(0,10) }}"
+               class="w-full border-2 border-purple-300 rounded-xl px-4 py-3 text-base font-semibold focus:border-purple-500 focus:ring-4 focus:ring-purple-200">
+      </div>
+      <button class="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+        Aplicar
+      </button>
     </div>
-    <div>
-      <label class="text-sm font-medium">Desde</label>
-      <input type="date" name="start" value="{{ \Illuminate\Support\Str::of($range['start'])->substr(0,10) }}" class="border rounded-lg px-3 py-2">
-
-  
+    <div class="mt-4 text-center">
+      <span class="inline-block bg-white/80 px-6 py-3 rounded-2xl text-lg font-bold text-gray-700 shadow-md">
+        📊 Mostrando: {{ $range['label'] }}
+      </span>
     </div>
-    <div>
-      <label class="text-sm font-medium">Hasta</label>
-      <input type="date" name="end" value="{{ \Illuminate\Support\Str::of($range['end'])->substr(0,10) }}" class="border rounded-lg px-3 py-2">
-
-    </div>
-    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Aplicar</button>
-    <span class="ml-3 text-sm text-gray-500">Rango: {{ $range['label'] }}</span>
   </form>
 
-
-
-
-@php
-    // Si por alguna razón no vinieran, usa colecciones vacías y evita el crash
+  @php
     $lowStock = $lowStock ?? collect();
     $expired  = $expired  ?? collect();
     $expiring = $expiring ?? collect();
+  @endphp
 
-    // Ahora arma las listas con seguridad
-    $listas = [
-        ['t' => 'Bajo stock', 'data' => $lowStock],
-        ['t' => 'Vencidos',   'data' => $expired],
-        ['t' => 'Por vencer', 'data' => $expiring],
-    ];
-@endphp
-
-
-
-
-  {{-- Fila 1: Alertas --}}
-  {{-- Fila 1: Alertas --}}
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-  <div class="rounded-xl p-4 bg-red-600 text-white shadow">
-    <div class="text-sm opacity-90">🔻 Bajo stock</div>
-    <div class="text-3xl font-bold">
-      {{ isset($lowStock) ? $lowStock->count() : ($lowStockCount ?? 0) }}
+  {{-- ALERTAS DE PRODUCTOS - MÁS COLORIDAS --}}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="rounded-3xl p-8 bg-gradient-to-br from-red-300 to-red-400 text-white shadow-2xl border-4 border-red-500 hover:scale-105 transition-transform">
+      <div class="text-2xl mb-2">🔻</div>
+      <div class="text-lg font-bold mb-1">Productos con poco stock</div>
+      <div class="text-5xl font-bold mb-2">
+        {{ isset($lowStock) ? $lowStock->count() : ($lowStockCount ?? 0) }}
+      </div>
+      <div class="text-base opacity-90">Hay que pedir más</div>
     </div>
-    <div class="text-xs mt-2">Productos por debajo del mínimo</div>
+
+    <div class="rounded-3xl p-8 bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-2xl border-4 border-gray-900 hover:scale-105 transition-transform">
+      <div class="text-2xl mb-2">⚫</div>
+      <div class="text-lg font-bold mb-1">Productos vencidos</div>
+      <div class="text-5xl font-bold mb-2">
+        {{ isset($expired) ? $expired->count() : ($expiredCount ?? 0) }}
+      </div>
+      <div class="text-base opacity-90">Ya no se pueden vender</div>
+    </div>
+
+    <div class="rounded-3xl p-8 bg-gradient-to-br from-amber-300 to-amber-400 text-white shadow-2xl border-4 border-amber-500 hover:scale-105 transition-transform">
+      <div class="text-2xl mb-2">⏳</div>
+      <div class="text-lg font-bold mb-1">Por vencer pronto</div>
+      <div class="text-5xl font-bold mb-2">
+        {{ isset($expiring) ? $expiring->count() : ($expiringCount ?? 0) }}
+      </div>
+      <div class="text-base opacity-90">Vencen en 30 días o menos</div>
+    </div>
   </div>
 
-  <div class="rounded-xl p-4 bg-gray-900 text-white shadow">
-    <div class="text-sm opacity-90">⚫ Vencidos</div>
-    <div class="text-3xl font-bold">
-      {{ isset($expired) ? $expired->count() : ($expiredCount ?? 0) }}
-    </div>
-    <div class="text-xs mt-2">Fecha menor a hoy</div>
-  </div>
+  {{-- LISTAS DE PRODUCTOS CON PROBLEMAS --}}
+  @php $listas = [
+    ['t' => '🔻 Productos con poco stock', 'data' => $lowStock, 'bg' => 'from-red-50 to-red-100', 'border' => 'border-red-300'],
+    ['t' => '⚫ Productos vencidos', 'data' => $expired, 'bg' => 'from-gray-100 to-gray-200', 'border' => 'border-gray-400'],
+    ['t' => '⏳ Por vencer pronto (30 días)', 'data' => $expiring, 'bg' => 'from-amber-50 to-amber-100', 'border' => 'border-amber-300'],
+  ]; @endphp
 
-  <div class="rounded-xl p-4 bg-amber-500 text-white shadow">
-    <div class="text-sm opacity-90">⏳ Por vencer (≤30 días)</div>
-    <div class="text-3xl font-bold">
-      {{ isset($expiring) ? $expiring->count() : ($expiringCount ?? 0) }}
-    </div>
-    <div class="text-xs mt-2">Urgente revisar rotación</div>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-  {{-- Listas de detalle --}}
- @php $listas = [
-  ['t' => 'Bajo stock', 'data' => $lowStock],
-  ['t' => 'Vencidos',   'data' => $expired],
-  ['t' => 'Por vencer', 'data' => $expiring],
-]; @endphp
-
-@foreach ($listas as $L)
-  <div class="rounded-xl bg-white shadow">
-    <div class="px-4 py-3 border-b font-semibold">{{ $L['t'] }}</div>
-    <div class="max-h-64 overflow-auto divide-y">
-      @forelse ($L['data'] as $it)
-        <div class="px-4 py-2 text-sm">
-          <div class="font-medium">{{ $it->name }}</div>
-          <div class="text-gray-500">
-            @isset($it->stock) Stock: {{ $it->stock }} @endisset
-            @isset($it->min_stock) · Min: {{ $it->min_stock }} @endisset
-            @isset($it->expires_at) · Vence: {{ $it->expires_at }} @endisset
+  @foreach ($listas as $L)
+    <div class="rounded-3xl bg-gradient-to-br {{ $L['bg'] }} shadow-xl border-4 {{ $L['border'] }} overflow-hidden">
+      <div class="px-6 py-4 border-b-2 {{ $L['border'] }} font-bold text-xl text-gray-800">{{ $L['t'] }}</div>
+      <div class="max-h-80 overflow-auto divide-y">
+        @forelse ($L['data'] as $it)
+          <div class="px-6 py-4">
+            <div class="font-bold text-lg text-gray-800">{{ $it->name }}</div>
+            <div class="text-gray-600 text-base mt-1">
+              @isset($it->stock) 📦 Quedan: {{ $it->stock }} @endisset
+              @isset($it->min_stock) · Mínimo: {{ $it->min_stock }} @endisset
+              @isset($it->expires_at) · ⏰ Vence: {{ $it->expires_at }} @endisset
+            </div>
           </div>
+        @empty
+          <div class="px-6 py-4 text-base text-gray-500">✅ ¡Todo bien! No hay problemas aquí</div>
+        @endforelse
+      </div>
+    </div>
+  @endforeach
+
+  {{-- VENTAS Y UNIDADES VENDIDAS --}}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-3xl shadow-2xl p-8 border-4 border-green-300">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="text-6xl">🧾</div>
+        <div>
+          <div class="text-gray-600 text-lg font-semibold">Ventas realizadas</div>
+          <div id="kpi-ventas" class="text-5xl font-bold text-gray-800">—</div>
         </div>
-      @empty
-        <div class="px-4 py-3 text-sm text-gray-500">Sin datos</div>
-      @endforelse
-    </div>
-  </div>
-@endforeach
-
-
-
-
-
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-  <!-- KPI Ventas -->
-  <div class="bg-white rounded-xl shadow p-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="text-2xl">🧾</div>
-      <div>
-        <div class="text-gray-500 text-sm">Ventas (tickets)</div>
-        <div id="kpi-ventas" class="text-2xl font-semibold">—</div>
       </div>
+      <div id="kpi-ventas-delta" class="text-xl font-bold">—</div>
     </div>
-    <div id="kpi-ventas-delta" class="text-sm font-medium">—</div>
-  </div>
 
-  <!-- KPI Unidades -->
-  <div class="bg-white rounded-xl shadow p-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="text-2xl">📦</div>
-      <div>
-        <div class="text-gray-500 text-sm">Unidades vendidas</div>
-        <div id="kpi-unidades" class="text-2xl font-semibold">—</div>
+    <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-3xl shadow-2xl p-8 border-4 border-blue-300">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="text-6xl">📦</div>
+        <div>
+          <div class="text-gray-600 text-lg font-semibold">Productos vendidos</div>
+          <div id="kpi-unidades" class="text-5xl font-bold text-gray-800">—</div>
+        </div>
       </div>
+      <div id="kpi-unidades-delta" class="text-xl font-bold">—</div>
     </div>
-    <div id="kpi-unidades-delta" class="text-sm font-medium">—</div>
   </div>
-</div>
 
-
-
-  {{-- Fila 2: Comparaciones y Horas pico --}}
+  {{-- COMPARACIÓN VENTAS Y HORAS PICO --}}
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="rounded-xl bg-white shadow p-4">
-      <div class="flex items-baseline justify-between">
-        <h3 class="font-semibold">Ventas del rango</h3>
-  @php
-  $curr = data_get($compare ?? null, 'current', 0);
-  $prev = data_get($compare ?? null, 'previous', 0);
-  $diff = $prev > 0 ? round((($curr - $prev) / $prev) * 100, 1) : 0;
-@endphp
-
-<span class="{{ $diff >= 0 ? 'text-green-600' : 'text-red-600' }} text-sm font-semibold">
-  {{ $diff >= 0 ? '+' : '' }}{{ number_format($diff, 1) }}%
-</span>
-
-
+    <div class="rounded-3xl bg-gradient-to-br from-purple-100 to-purple-200 shadow-2xl p-6 border-4 border-purple-300">
+      <div class="flex items-baseline justify-between mb-4">
+        <h3 class="font-bold text-2xl text-gray-800">💰 Dinero de ventas</h3>
+        @php
+          $curr = data_get($compare ?? null, 'current', 0);
+          $prev = data_get($compare ?? null, 'previous', 0);
+          $diff = $prev > 0 ? round((($curr - $prev) / $prev) * 100, 1) : 0;
+        @endphp
+        <span class="{{ $diff >= 0 ? 'text-green-600' : 'text-red-600' }} text-xl font-bold px-4 py-2 rounded-xl bg-white/80">
+          {{ $diff >= 0 ? '📈' : '📉' }} {{ $diff >= 0 ? '+' : '' }}{{ number_format($diff, 1) }}%
+        </span>
       </div>
-      <div id="chartMonthly" class="mt-2 h-64"></div>
+      <div id="chartMonthly" class="h-72"></div>
     </div>
 
-    <div class="rounded-xl bg-white shadow p-4">
-      <h3 class="font-semibold">⏰ Horas pico ({{ $range['label'] }})</h3>
-      <div id="chartHourly" class="mt-2 h-64"></div>
+    <div class="rounded-3xl bg-gradient-to-br from-orange-100 to-orange-200 shadow-2xl p-6 border-4 border-orange-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">⏰ Horas con más ventas</h3>
+      <div id="chartHourly" class="h-72"></div>
     </div>
   </div>
 
-
-
-<div class="bg-white rounded-xl shadow p-4 mb-6">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-semibold text-gray-800">🗺️ Mapa de calor — Ventas por hora y día</h3>
-    <span class="text-sm text-gray-500">{{ $rangeLabel ?? '' }}</span>
-  </div>
-  <div id="chart-heatmap" style="height: 380px;"></div>
-</div>
-
-<div class="rounded-xl bg-white shadow p-4 mt-6">
-  <div class="flex items-baseline justify-between">
-    <h3 class="font-semibold">Días más vendidos</h3>
-    <div class="space-x-1 text-sm">
-      <button id="btnTickets" class="px-2 py-1 rounded border">Tickets</button>
-      <button id="btnAmount"  class="px-2 py-1 rounded border">Monto</button>
-      <button id="btnUnits"   class="px-2 py-1 rounded border">Unidades</button>
+  {{-- MAPA DE CALOR --}}
+  <div class="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl shadow-2xl p-6 border-4 border-pink-300">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-2xl text-gray-800">🗺️ ¿Cuándo se vende más?</h3>
+      <span class="text-lg text-gray-600 bg-white/80 px-4 py-2 rounded-xl font-semibold">{{ $rangeLabel ?? '' }}</span>
     </div>
+    <div id="chart-heatmap" style="height: 400px;"></div>
   </div>
-  <p class="text-xs text-gray-500 mb-2">Qué días se vende más (elige: cantidad de ventas, monto o unidades).</p>
-  <div id="chartByDay" style="height: 320px;"></div>
-</div>
 
-{{-- payload para JS --}}
-@php
-  $sbd = $salesByDay ?? ['labels'=>[],'tickets'=>[],'amount'=>[],'units'=>[]];
-@endphp
-<script>
-  window.DASH = window.DASH || {};
-  window.DASH.salesByDay = @json($sbd);
-</script>
+  {{-- DÍAS MÁS VENDIDOS --}}
+  <div class="rounded-3xl bg-gradient-to-br from-yellow-100 to-yellow-200 shadow-2xl p-6 border-4 border-yellow-300">
+    <div class="flex items-baseline justify-between mb-4">
+      <h3 class="font-bold text-2xl text-gray-800">📅 ¿Qué días se vende más?</h3>
+      <div class="space-x-2">
+        <button id="btnTickets" class="px-4 py-2 rounded-xl border-2 text-base font-semibold hover:bg-white/80 transition-all">Ventas</button>
+        <button id="btnAmount" class="px-4 py-2 rounded-xl border-2 text-base font-semibold hover:bg-white/80 transition-all">Dinero</button>
+        <button id="btnUnits" class="px-4 py-2 rounded-xl border-2 text-base font-semibold hover:bg-white/80 transition-all">Productos</button>
+      </div>
+    </div>
+    <p class="text-base text-gray-700 mb-4 bg-white/60 px-4 py-2 rounded-xl">Lunes, Martes, Miércoles... ¿Cuál es el día que más vendemos?</p>
+    <div id="chartByDay" style="height: 340px;"></div>
+  </div>
 
-
-
-
-  {{-- Fila 3: Movimientos y márgenes --}}
+  {{-- PRODUCTOS MÁS Y MENOS VENDIDOS --}}
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="rounded-xl bg-white shadow p-4">
-      <h3 class="font-semibold">🔥 Más vendidos</h3>
-      <div id="chartTopMovers" class="mt-2 h-72"></div>
+    <div class="rounded-3xl bg-gradient-to-br from-green-100 to-green-200 shadow-2xl p-6 border-4 border-green-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">🔥 Los que más se venden</h3>
+      <div id="chartTopMovers" class="h-80"></div>
     </div>
-    <div class="rounded-xl bg-white shadow p-4">
-      <h3 class="font-semibold">🧊 Menos movimiento</h3>
-      <div id="chartSlowMovers" class="mt-2 h-72"></div>
+    <div class="rounded-3xl bg-gradient-to-br from-blue-100 to-blue-200 shadow-2xl p-6 border-4 border-blue-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">🧊 Los que NO se venden</h3>
+      <div id="chartSlowMovers" class="h-80"></div>
     </div>
-    <div class="rounded-xl bg-white shadow p-4">
-      <h3 class="font-semibold">💚 Mayor margen</h3>
-      <div id="chartMargins" class="mt-2 h-72"></div>
+    <div class="rounded-3xl bg-gradient-to-br from-purple-100 to-purple-200 shadow-2xl p-6 border-4 border-purple-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">💚 Los que más ganancia dejan</h3>
+      <div id="chartMargins" class="h-80"></div>
     </div>
   </div>
 
-
-
-
-
-{{-- Productos que mandan (Pareto / ABC) --}}
-<div class="bg-white rounded-xl shadow p-4 mb-6">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-semibold text-gray-800">🏆 Productos que mandan (Pareto / ABC)</h3>
-    <span class="text-sm text-gray-500">{{ $range['label'] ?? '' }}
-</span>
+  {{-- ANÁLISIS ABC --}}
+  <div class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-3xl shadow-2xl p-6 border-4 border-indigo-300">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-2xl text-gray-800">🏆 ¿Qué productos son los más importantes?</h3>
+      <span class="text-lg text-gray-600 bg-white/80 px-4 py-2 rounded-xl font-semibold">{{ $range['label'] ?? '' }}</span>
+    </div>
+    <p class="text-base text-gray-700 mb-4 bg-white/60 px-4 py-3 rounded-xl">
+      <strong>Los TOP (A)</strong> son los que generan el 80% de las ventas. <strong>Los Medios (B)</strong> el 15%. <strong>Los Bajos (C)</strong> el 5%.
+    </p>
+    <div id="chart-abc" style="height: 400px;"></div>
   </div>
-  <p class="text-sm text-gray-600 mb-3">Muestra qué productos explican la mayor parte de tus ventas (en unidades). A=Top, B=Medio, C=Bajo.</p>
-  <div id="chart-abc" style="height: 380px;"></div>
-</div>
 
-
-@php
-    // $abcChart puede venir como array de arrays u objetos; lo normalizamos
+  @php
     $abc = collect($abcChart ?? [])->map(function ($r) {
         return [
-            'name'      => is_array($r) ? ($r['name'] ?? '') : ($r->name ?? ''),
-            'unidades'  => (int)(is_array($r) ? ($r['unidades'] ?? 0) : ($r->unidades ?? 0)),
-            'pct'       => (float)(is_array($r) ? ($r['pct'] ?? 0) : ($r->pct ?? 0)),
-            'acum'      => (float)(is_array($r) ? ($r['acum'] ?? 0) : ($r->acum ?? 0)),
-            'class'     => is_array($r) ? ($r['class'] ?? 'C') : ($r->class ?? 'C'),
+            'name' => is_array($r) ? ($r['name'] ?? '') : ($r->name ?? ''),
+            'unidades' => (int)(is_array($r) ? ($r['unidades'] ?? 0) : ($r->unidades ?? 0)),
+            'pct' => (float)(is_array($r) ? ($r['pct'] ?? 0) : ($r->pct ?? 0)),
+            'acum' => (float)(is_array($r) ? ($r['acum'] ?? 0) : ($r->acum ?? 0)),
+            'class' => is_array($r) ? ($r['class'] ?? 'C') : ($r->class ?? 'C'),
         ];
     });
 
@@ -267,103 +225,87 @@
         'B' => $abc->where('class','B')->values(),
         'C' => $abc->where('class','C')->values(),
     ];
-@endphp
+  @endphp
 
-<div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-    @foreach (['A' => 'Top (≈80%)', 'B' => 'Medio (≈15%)', 'C' => 'Bajo (≈5%)'] as $clase => $desc)
-        <div class="rounded-xl border bg-white p-4">
-            <div class="flex items-baseline justify-between">
-                <h4 class="font-semibold">Clase {{ $clase }}</h4>
-                <span class="text-xs text-gray-500">{{ $groups[$clase]->count() }} productos</span>
-            </div>
-
-            @if ($groups[$clase]->isEmpty())
-                <p class="text-sm text-gray-400 mt-2">Sin productos en esta clase.</p>
-            @else
-                <ol class="mt-2 text-sm space-y-1 max-h-48 overflow-auto pr-1">
-                    @foreach ($groups[$clase] as $item)
-                        <li class="flex items-center justify-between gap-2">
-                            <span class="truncate" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
-                            <span class="shrink-0 tabular-nums text-gray-600">
-                                {{ number_format($item['pct'],1) }}% · {{ $item['unidades'] }} uds
-                            </span>
-                        </li>
-                    @endforeach
-                </ol>
-            @endif
-
-            <p class="text-xs text-gray-400 mt-3">{{ $desc }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    @foreach ([
+      'A' => ['title' => '🥇 Los TOP', 'desc' => 'Generan el 80% de ventas', 'bg' => 'from-yellow-100 to-yellow-200', 'border' => 'border-yellow-400'],
+      'B' => ['title' => '🥈 Los Medios', 'desc' => 'Generan el 15% de ventas', 'bg' => 'from-gray-100 to-gray-200', 'border' => 'border-gray-400'],
+      'C' => ['title' => '🥉 Los Bajos', 'desc' => 'Generan el 5% de ventas', 'bg' => 'from-orange-100 to-orange-200', 'border' => 'border-orange-400'],
+    ] as $clase => $info)
+      <div class="rounded-3xl border-4 {{ $info['border'] }} bg-gradient-to-br {{ $info['bg'] }} p-6 shadow-xl">
+        <div class="flex items-baseline justify-between mb-3">
+          <h4 class="font-bold text-xl text-gray-800">{{ $info['title'] }}</h4>
+          <span class="text-sm text-gray-600 bg-white/60 px-3 py-1 rounded-xl font-semibold">{{ $groups[$clase]->count() }} productos</span>
         </div>
+
+        @if ($groups[$clase]->isEmpty())
+          <p class="text-base text-gray-500 mt-3">No hay productos en esta categoría</p>
+        @else
+          <ol class="mt-3 text-base space-y-2 max-h-56 overflow-auto pr-2">
+            @foreach ($groups[$clase] as $item)
+              <li class="flex items-center justify-between gap-2 bg-white/60 px-3 py-2 rounded-xl">
+                <span class="truncate font-semibold text-gray-800" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
+                <span class="shrink-0 tabular-nums text-gray-700 font-bold">
+                  {{ number_format($item['pct'],1) }}%
+                </span>
+              </li>
+            @endforeach
+          </ol>
+        @endif
+
+        <p class="text-sm text-gray-600 mt-4 bg-white/60 px-3 py-2 rounded-xl font-semibold">{{ $info['desc'] }}</p>
+      </div>
     @endforeach
-</div>
-
-
-
-
-
-
-
-
-
-
-
-{{-- Estrellas (margen × rotación) --}}
-<div class="bg-white rounded-xl shadow p-4 mb-6">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="font-semibold text-gray-800">⭐ Estrellas (margen × rotación)</h3>
-    <span class="text-sm text-gray-500">{{ $range['label'] ?? '' }}
-</span>
   </div>
-  <p class="text-sm text-gray-600 mb-3">Mezcla cuánto se vende (unidades) con qué tanto ganás por unidad (margen%).</p>
-  <div id="chart-stars" style="height: 380px;"></div>
-</div>
 
+  {{-- ESTRELLAS (MARGEN X ROTACIÓN) --}}
+  <div class="bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-3xl shadow-2xl p-6 border-4 border-cyan-300">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-2xl text-gray-800">⭐ Productos estrella</h3>
+      <span class="text-lg text-gray-600 bg-white/80 px-4 py-2 rounded-xl font-semibold">{{ $range['label'] ?? '' }}</span>
+    </div>
+    <p class="text-base text-gray-700 mb-4 bg-white/60 px-4 py-3 rounded-xl">
+      Productos que <strong>se venden mucho</strong> Y además <strong>dejan buena ganancia</strong>
+    </p>
+    <div id="chart-stars" style="height: 400px;"></div>
+  </div>
 
-
-
-
-
-
-
-  {{-- Fila 4: Métodos de pago y proveedores --}}
+  {{-- MÉTODOS DE PAGO Y PROVEEDORES --}}
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="rounded-xl bg-white shadow p-4">
-      <h3 class="font-semibold">💳 Métodos de pago (porcentaje)</h3>
-      <div id="chartPayments" class="mt-2 h-64"></div>
+    <div class="rounded-3xl bg-gradient-to-br from-teal-100 to-teal-200 shadow-2xl p-6 border-4 border-teal-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">💳 ¿Cómo pagan los clientes?</h3>
+      <div id="chartPayments" class="h-72"></div>
     </div>
-    <div class="rounded-xl bg-white shadow p-4">
-      <h3 class="font-semibold">🚚 Proveedores que más llegan</h3>
-      <div id="chartProviders" class="mt-2 h-64"></div>
+    <div class="rounded-3xl bg-gradient-to-br from-rose-100 to-rose-200 shadow-2xl p-6 border-4 border-rose-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">🚚 Proveedores que vinieron</h3>
+      <p class="text-sm text-gray-600 mb-3 bg-white/60 px-3 py-2 rounded-xl">Proveedores que hicieron entregas en este periodo</p>
+      <div id="chartProviders" class="h-72"></div>
     </div>
   </div>
 
 </div>
 
-
-
-
-
-
-
-{{-- Datos para JS --}}
+{{-- Datos para JavaScript --}}
+@php
+  $sbd = $salesByDay ?? ['labels'=>[],'tickets'=>[],'amount'=>[],'units'=>[]];
+@endphp
 <script>
   window.DASH = window.DASH || {};
   Object.assign(window.DASH, {!! json_encode([
     'salesByMonth' => $salesByMonth ?? [],
-    'hourly'       => $hourly ?? [],
-    'topMovers'    => $topMovers ?? [],
-    'slowMovers'   => $slowMovers ?? [],
-    'margins'      => $marginProducts ?? [],
+    'hourly' => $hourly ?? [],
+    'topMovers' => $topMovers ?? [],
+    'slowMovers' => $slowMovers ?? [],
+    'margins' => $marginProducts ?? [],
     'paymentShare' => $paymentShare ?? [],
     'providersTop' => $providersTop ?? [],
-    'kpis'         => $kpis ?? [],
-    'heatmap'      => $heatmap ?? [],
-    'abcChart'     => $abcChart ?? [],
-    'starsChart'   => $starsChart ?? [],
-    'salesByDay'   => $salesByDay ?? [],
+    'kpis' => $kpis ?? [],
+    'heatmap' => $heatmap ?? [],
+    'abcChart' => $abcChart ?? [],
+    'starsChart' => $starsChart ?? [],
+    'salesByDay' => $sbd,
   ]) !!});
 </script>
-
-
 
 @endsection
