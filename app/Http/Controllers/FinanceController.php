@@ -73,16 +73,23 @@ class FinanceController extends Controller
         // 4) ENTRADAS - OTROS INGRESOS
         // ========================================
         // IMPORTANTE: Excluir solo 'ingreso_fondo_inicial' porque solo afecta el flujo de caja, no el balance
+        // También incluir registros donde category es NULL (usan custom_category)
         $otrosIngresos = CashMovement::whereDate('date', '>=', $start->toDateString())
             ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'ingreso')
-            ->where('category', '!=', 'ingreso_fondo_inicial')
+            ->where(function($q) {
+                $q->where('category', '!=', 'ingreso_fondo_inicial')
+                  ->orWhereNull('category');
+            })
             ->sum('amount');
 
         $otrosIngresosPorCategoria = CashMovement::whereDate('date', '>=', $start->toDateString())
             ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'ingreso')
-            ->where('category', '!=', 'ingreso_fondo_inicial')
+            ->where(function($q) {
+                $q->where('category', '!=', 'ingreso_fondo_inicial')
+                  ->orWhereNull('category');
+            })
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
             ->groupBy('cat')
             ->orderBy('total', 'desc')
@@ -209,7 +216,10 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
         $prevOtrosIngresos = CashMovement::whereDate('date', '>=', $prevStart->toDateString())
             ->whereDate('date', '<=', $prevEnd->toDateString())
             ->where('type', 'ingreso')
-            ->where('category', '!=', 'ingreso_fondo_inicial')
+            ->where(function($q) {
+                $q->where('category', '!=', 'ingreso_fondo_inicial')
+                  ->orWhereNull('category');
+            })
             ->sum('amount');
 
         $prevEntradas = $prevVentas + $prevAbonos + $prevOtrosIngresos;
