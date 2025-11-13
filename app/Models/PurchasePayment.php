@@ -43,8 +43,8 @@ class PurchasePayment extends Model
     public function getPaymentMethodLabelAttribute(): string
     {
         return match($this->payment_method) {
-            'caja' => 'Efectivo de caja',
-            'externo' => 'Dinero externo',
+            'caja' => 'Efectivo de caja (sale del turno)',
+            'efectivo_personal' => 'Efectivo personal (no sale del turno)',
             'credito' => 'A crédito',
             'transferencia' => 'Transferencia',
             'tarjeta' => 'Tarjeta',
