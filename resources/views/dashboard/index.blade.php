@@ -271,10 +271,17 @@
     <div id="chart-stars" style="height: 400px;"></div>
   </div>
 
-  {{-- MÉTODOS DE PAGO --}}
-  <div class="rounded-3xl bg-gradient-to-br from-teal-100 to-teal-200 shadow-2xl p-6 border-4 border-teal-300">
-    <h3 class="font-bold text-2xl text-gray-800 mb-4">💳 ¿Cómo pagan los clientes?</h3>
-    <div id="chartPayments" class="h-72"></div>
+  {{-- MÉTODOS DE PAGO Y PROVEEDORES --}}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="rounded-3xl bg-gradient-to-br from-teal-100 to-teal-200 shadow-2xl p-6 border-4 border-teal-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">💳 ¿Cómo pagan los clientes?</h3>
+      <div id="chartPayments" class="h-72"></div>
+    </div>
+    <div class="rounded-3xl bg-gradient-to-br from-rose-100 to-rose-200 shadow-2xl p-6 border-4 border-rose-300">
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">🚚 Proveedores con más productos</h3>
+      <p class="text-sm text-gray-600 mb-3 bg-white/60 px-3 py-2 rounded-xl">Proveedores con más variedad de productos en inventario</p>
+      <div id="chartProviders" class="h-72"></div>
+    </div>
   </div>
 
 </div>

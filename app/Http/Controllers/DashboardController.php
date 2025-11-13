@@ -413,8 +413,15 @@ if ($pmTotal === 0) {
 
 
 
-
-
+        // 9) Proveedores con más productos en inventario
+        $providersTop = DB::table('products')
+            ->join('providers', 'providers.id', '=', 'products.provider_id')
+            ->where('products.stock', '>', 0)
+            ->groupBy('providers.id', 'providers.name')
+            ->selectRaw('providers.name, COUNT(products.id) as total_productos')
+            ->orderByDesc('total_productos')
+            ->limit(10)
+            ->get();
 
 // --- Alertas de productos (una sola fuente de verdad) ---
 $today = \Carbon\Carbon::today()->toDateString();
@@ -505,6 +512,7 @@ return view('dashboard.index', [
     'marginProducts' => $marginProducts,
     'salesByMonth'   => $salesByMonth,
     'paymentShare'   => $paymentShare,
+    'providersTop'   => $providersTop,
     'salesByDay'  => $salesByDay,
 
     // ——— KPIs & Heatmap ———
