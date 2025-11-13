@@ -104,7 +104,8 @@ Route::middleware(['auth', 'sensitive'])
         Route::get('/',               [ReporteVentasController::class, 'index'])->name('index');
         Route::get('/export',         [ReporteVentasController::class, 'exportCsv'])->name('export');
         Route::get('/export-excel',   [ReporteVentasController::class, 'exportExcel'])->name('excel');
-        Route::get('/proveedores',    [ReporteVentasController::class, 'porProveedor'])->name('proveedores');
+        Route::get('/categorias',     [ReporteVentasController::class, 'porCategoria'])->name('categorias');
+        Route::get('/proveedores',    [ReporteVentasController::class, 'porProveedor'])->name('proveedores'); // DEPRECATED: redirige a categorias
 
         // NUEVO: ventas por producto (vista + filtro)
         Route::get('/por-producto',   [ReporteVentasController::class, 'porProducto'])->name('producto');

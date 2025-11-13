@@ -1,7 +1,7 @@
 @php
 $tabs = [
   ['label' => '📊 General',            'route' => 'reportes.ventas.index'],
-  ['label' => '🏷️ Por proveedor',      'route' => 'reportes.ventas.proveedores'],
+  ['label' => '🏷️ Por categoría',      'route' => 'reportes.ventas.categorias'],
   ['label' => '🧾 Ventas por producto', 'route' => 'reportes.ventas.producto'],
   ['label' => '🧍 Detalle',             'route' => 'reportes.ventas.detalle'], // si aplica
   ['label' => '🕐 Turnos',             'route' => 'reportes.ventas.turnos'],

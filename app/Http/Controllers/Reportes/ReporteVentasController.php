@@ -318,29 +318,28 @@ public function buscarProductos(Request $r)
     
 
 
-public function porProveedor(\Illuminate\Http\Request $request)
+public function porCategoria(\Illuminate\Http\Request $request)
 {
     $desde = $request->input('desde') ?: now()->startOfMonth()->format('Y-m-d');
     $hasta = $request->input('hasta') ?: now()->endOfMonth()->format('Y-m-d');
     $q     = trim($request->input('q', ''));
 
-    // --- Resumen por proveedor ---
+    // --- Resumen por categoría ---
     $rows = \DB::table('sale_items as si')
         ->join('sales as s', 's.id', '=', 'si.sale_id')
         ->join('products as p', 'p.id', '=', 'si.product_id')
-        ->leftJoin('providers as pv', 'pv.id', '=', 'p.provider_id')
         ->when($desde, fn($qq) => $qq->whereDate('s.created_at', '>=', $desde))
         ->when($hasta, fn($qq) => $qq->whereDate('s.created_at', '<=', $hasta))
         ->when($q, function ($qq) use ($q) {
             $qq->where(function ($w) use ($q) {
-                $w->where('pv.name', 'like', "%{$q}%")
+                $w->where('p.category', 'like', "%{$q}%")
                   ->orWhere('p.name', 'like', "%{$q}%");
             });
         })
-        ->selectRaw('COALESCE(pv.name,"(Sin proveedor)") as proveedor')
-        ->selectRaw('SUM(si.qty) as unidades')                // <-- cambia a si.cantidad si aplica
-        ->selectRaw('SUM(si.qty * si.price) as total_vendido')// <-- idem
-        ->groupBy('proveedor')
+        ->selectRaw('COALESCE(p.category,"(Sin categoría)") as categoria')
+        ->selectRaw('SUM(si.qty) as unidades')
+        ->selectRaw('SUM(si.qty * si.price) as total_vendido')
+        ->groupBy('categoria')
         ->orderByDesc('total_vendido')
         ->get();
 
@@ -350,29 +349,36 @@ public function porProveedor(\Illuminate\Http\Request $request)
     $detalle = \DB::table('sale_items as si')
         ->join('sales as s', 's.id', '=', 'si.sale_id')
         ->join('products as p', 'p.id', '=', 'si.product_id')
-        ->leftJoin('providers as pv', 'pv.id', '=', 'p.provider_id')
         ->when($desde, fn($qq) => $qq->whereDate('s.created_at', '>=', $desde))
         ->when($hasta, fn($qq) => $qq->whereDate('s.created_at', '<=', $hasta))
         ->when($q, function ($qq) use ($q) {
             $qq->where(function ($w) use ($q) {
                 $w->where('p.name', 'like', "%{$q}%")
-                  ->orWhere('pv.name', 'like', "%{$q}%");
+                  ->orWhere('p.category', 'like', "%{$q}%");
             });
         })
         ->selectRaw('p.name as producto')
-        ->selectRaw('COALESCE(pv.name,"(Sin proveedor)") as proveedor')
-        ->selectRaw('SUM(si.qty) as unidades')                 // <-- cambia a si.cantidad si aplica
-        ->selectRaw('SUM(si.qty * si.price) as total_vendido') // <-- idem
-        ->groupBy('producto','proveedor')
+        ->selectRaw('COALESCE(p.category,"(Sin categoría)") as categoria')
+        ->selectRaw('SUM(si.qty) as unidades')
+        ->selectRaw('SUM(si.qty * si.price) as total_vendido')
+        ->groupBy('producto','categoria')
         ->orderByDesc('total_vendido')
-        ->limit(50) // para que sea ágil; luego ponemos paginación si quieres
+        ->limit(50)
         ->get();
 
     if ($request->ajax()) {
-        return view('reportes.ventas.partials.proveedores_contenido', compact('rows','total_general','detalle'))->render();
+        return view('reportes.ventas.partials.categorias_contenido', compact('rows','total_general','detalle'))->render();
     }
 
-    return view('reportes.ventas.proveedores', compact('rows','total_general','desde','hasta','q','detalle'));
+    return view('reportes.ventas.categorias', compact('rows','total_general','desde','hasta','q','detalle'));
+}
+
+// DEPRECATED: Método antiguo mantenido por compatibilidad
+// Redirige al nuevo reporte por categoría
+public function porProveedor(\Illuminate\Http\Request $request)
+{
+    return redirect()->route('reportes.ventas.categorias', $request->all())
+        ->with('info', 'El reporte por proveedor ha sido reemplazado por reporte por categoría');
 }
 
 
