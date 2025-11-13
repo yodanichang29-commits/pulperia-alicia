@@ -232,8 +232,8 @@ class InventoryTransactionController extends Controller
      */
   public function show(InventoryTransaction $transaction)
 {
-    // Carga los renglones + producto + usuario + proveedor
-    $transaction->load(['items.product','user','provider']);
+    // Carga los renglones + producto + usuario + proveedor + pagos
+    $transaction->load(['items.product','user','provider','payments.user']);
 
     return view('inventario.movimientos.show', compact('transaction'));
 }
