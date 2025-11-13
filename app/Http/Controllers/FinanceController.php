@@ -105,12 +105,16 @@ class FinanceController extends Controller
         // ========================================
         // 6) SALIDAS - GASTOS OPERATIVOS
         // ========================================
+        // IMPORTANTE: Excluir 'pago_proveedor' porque las compras ya se cuentan en $compras
+        // Los pagos de compras solo afectan el flujo de caja (turno), no el Balance General
         $gastosOperativos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'egreso')
+            ->where('category', '!=', 'pago_proveedor')
             ->sum('amount');
 
         $gastosOperativosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'egreso')
+            ->where('category', '!=', 'pago_proveedor')
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
             ->groupBy('cat')
             ->orderBy('total', 'desc')
@@ -197,6 +201,7 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
 
         $prevGastos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
             ->where('type', 'egreso')
+            ->where('category', '!=', 'pago_proveedor')
             ->sum('amount');
 
         $prevSalidas = $prevCompras + $prevMermas + $prevGastos;
@@ -309,9 +314,10 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             ->get()
             ->keyBy('fecha');
 
-        // Gastos operativos por día
+        // Gastos operativos por día (excluir pago_proveedor)
         $gastosPorDia = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'egreso')
+            ->where('category', '!=', 'pago_proveedor')
             ->selectRaw('date as fecha, SUM(amount) as total')
             ->groupBy('fecha')
             ->orderBy('fecha')

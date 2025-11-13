@@ -6,6 +6,9 @@ use App\Models\Product;
 use App\Models\Provider;
 use App\Models\InventoryMovement;
 use App\Models\InventoryTransaction;
+use App\Models\PurchasePayment;
+use App\Models\CashMovement;
+use App\Models\CashShift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -73,11 +76,24 @@ class InventoryTransactionController extends Controller
             'items.*.product_id'    => 'required|exists:products,id',
             'items.*.qty'           => 'required|integer|min:1',
             'items.*.unit_cost'     => 'nullable|numeric|min:0',
+
+            // Validación de pagos (solo para compras)
+            'payments'              => 'nullable|array|min:1',
+            'payments.*.method'     => 'nullable|in:caja,externo,credito,transferencia,tarjeta',
+            'payments.*.amount'     => 'nullable|numeric|min:0',
+            'payments.*.affects_cash' => 'nullable|boolean',
+            'payments.*.notes'      => 'nullable|string|max:500',
         ]);
 
         // 2) Reglas extra
         if ($data['type'] === 'in' && $data['reason'] === 'purchase' && empty($data['provider_id'])) {
             return back()->withErrors(['provider_id' => 'Debes seleccionar un proveedor para una compra.'])->withInput();
+        }
+
+        // Validar pagos para compras
+        $isPurchase = ($data['type'] === 'in' && $data['reason'] === 'purchase');
+        if ($isPurchase && empty($data['payments'])) {
+            return back()->withErrors(['payments' => 'Debes especificar al menos un método de pago para la compra.'])->withInput();
         }
 
         // 3) Ejecutar todo en transacción
@@ -152,6 +168,58 @@ class InventoryTransactionController extends Controller
 
             // Total en encabezado
             $tx->update(['total_cost' => $total]);
+
+            // ===== PROCESAR PAGOS (solo para compras) =====
+            if ($isPurchase && !empty($data['payments'])) {
+                // Calcular suma de pagos
+                $totalPayments = collect($data['payments'])->sum(function($p) {
+                    return (float) ($p['amount'] ?? 0);
+                });
+
+                // Validar que los pagos sumen el total de la compra
+                if (abs($totalPayments - $total) > 0.01) {
+                    throw new \RuntimeException(
+                        "Los pagos (L{$totalPayments}) no coinciden con el total de la compra (L{$total})"
+                    );
+                }
+
+                // Obtener el turno abierto del usuario actual (si existe)
+                $currentShift = CashShift::openForUser(Auth::id())->first();
+
+                // Crear registros de pagos
+                foreach ($data['payments'] as $payment) {
+                    $amount = (float) ($payment['amount'] ?? 0);
+                    if ($amount <= 0) continue; // Saltar pagos en cero
+
+                    $affectsCash = (bool) ($payment['affects_cash'] ?? false);
+
+                    // Crear el registro de pago
+                    $purchasePayment = PurchasePayment::create([
+                        'purchase_id'    => $tx->id,
+                        'amount'         => $amount,
+                        'payment_method' => $payment['method'],
+                        'affects_cash'   => $affectsCash,
+                        'notes'          => $payment['notes'] ?? null,
+                        'user_id'        => Auth::id(),
+                    ]);
+
+                    // Si afecta la caja, crear movimiento de efectivo vinculado al turno
+                    if ($affectsCash) {
+                        CashMovement::create([
+                            'cash_shift_id'  => $currentShift?->id, // Vincular al turno actual
+                            'date'           => $data['moved_at'] ?? now(),
+                            'type'           => 'egreso',
+                            'category'       => 'pago_proveedor',
+                            'description'    => "Pago compra #{$tx->id}" .
+                                              (!empty($data['reference']) ? " (Ref: {$data['reference']})" : ""),
+                            'amount'         => $amount,
+                            'payment_method' => 'efectivo', // Pagos de caja son siempre efectivo
+                            'notes'          => $payment['notes'] ?? null,
+                            'created_by'     => Auth::id(),
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
 
