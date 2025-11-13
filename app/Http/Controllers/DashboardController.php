@@ -400,49 +400,18 @@ if ($pmTotal === 0) {
 
 
         // 9) Proveedores que VINIERON en el rango (hicieron entregas)
-        // Intentar múltiples caminos para obtener los proveedores
-
-        // Opción 1: Usar inventory_movements → inventory_transactions → providers
-        $providersFromTransactions = DB::table('inventory_movements as im')
-            ->join('inventory_transactions as it', 'it.id', '=', 'im.transaction_id')
+        // Usar el mismo enfoque que funciona en Finanzas: inventory_transactions directamente
+        $providersTop = DB::table('inventory_transactions as it')
             ->join('providers as pr', 'pr.id', '=', 'it.provider_id')
-            ->where('im.type', 'in')
-            ->whereBetween('im.created_at', [$start, $end])
-            ->whereNotNull('im.transaction_id')
+            ->where('it.type', 'in')
+            ->where('it.reason', 'purchase')
+            ->whereBetween('it.created_at', [$start, $end])
             ->whereNotNull('it.provider_id')
             ->groupBy('pr.id', 'pr.name')
-            ->selectRaw('pr.name, COUNT(im.id) as entregas')
+            ->selectRaw('pr.name, COUNT(it.id) as entregas')
+            ->orderByDesc('entregas')
+            ->limit(10)
             ->get();
-
-        // Opción 2: Usar inventory_movements → products → providers (para datos sin transaction_id)
-        $providersFromProducts = DB::table('inventory_movements as im')
-            ->join('products as p', 'p.id', '=', 'im.product_id')
-            ->join('providers as pr', 'pr.id', '=', 'p.provider_id')
-            ->where('im.type', 'in')
-            ->whereBetween('im.created_at', [$start, $end])
-            ->whereNull('im.transaction_id')
-            ->whereNotNull('p.provider_id')
-            ->groupBy('pr.id', 'pr.name')
-            ->selectRaw('pr.name, COUNT(im.id) as entregas')
-            ->get();
-
-        // Combinar ambas colecciones y sumar entregas por proveedor
-        $providersMap = [];
-
-        foreach ($providersFromTransactions as $item) {
-            $providersMap[$item->name] = ($providersMap[$item->name] ?? 0) + $item->entregas;
-        }
-
-        foreach ($providersFromProducts as $item) {
-            $providersMap[$item->name] = ($providersMap[$item->name] ?? 0) + $item->entregas;
-        }
-
-        // Convertir a colección y ordenar
-        $providersTop = collect($providersMap)
-            ->map(fn($entregas, $name) => (object)['name' => $name, 'entregas' => $entregas])
-            ->sortByDesc('entregas')
-            ->take(10)
-            ->values();
 
 
 
