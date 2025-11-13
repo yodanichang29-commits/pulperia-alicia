@@ -423,7 +423,7 @@ $lowStock = DB::table('products')
     ->whereNotNull('min_stock')
     ->where('min_stock', '>', 0)
     ->whereColumn('stock', '<', 'min_stock')
-    ->select('id','name','stock','min_stock','expires_at','provider_id')
+    ->select('id','name','stock','min_stock','expires_at')
     ->orderByRaw('(min_stock - stock) DESC')
     ->get();
 
@@ -431,7 +431,7 @@ $lowStock = DB::table('products')
 $expired = DB::table('products')
     ->whereNotNull('expires_at')
     ->whereDate('expires_at','<',$today)
-    ->select('id','name','stock','expires_at','provider_id')
+    ->select('id','name','stock','expires_at')
     ->orderBy('expires_at')
     ->get();
 
@@ -440,7 +440,7 @@ $expiring = DB::table('products')
     ->whereNotNull('expires_at')
     ->whereDate('expires_at','>=',$today)
     ->whereDate('expires_at','<=',$in30)
-    ->select('id','name','stock','expires_at','provider_id')
+    ->select('id','name','stock','expires_at')
     ->orderBy('expires_at')
     ->get();
 
