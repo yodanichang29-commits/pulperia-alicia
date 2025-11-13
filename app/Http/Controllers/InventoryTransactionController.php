@@ -180,18 +180,21 @@ class InventoryTransactionController extends Controller
                 $currentShift = CashShift::where('user_id', Auth::id())->whereNull('closed_at')->first();
 
                 foreach ($data['payments'] as $paymentData) {
+                    // Convertir affects_cash a booleano
+                    $affectsCash = filter_var($paymentData['affects_cash'], FILTER_VALIDATE_BOOLEAN);
+
                     // Crear registro de pago
                     $payment = PurchasePayment::create([
                         'purchase_id'    => $tx->id,
                         'amount'         => $paymentData['amount'],
                         'payment_method' => $paymentData['payment_method'],
-                        'affects_cash'   => $paymentData['affects_cash'],
+                        'affects_cash'   => $affectsCash,
                         'notes'          => $paymentData['notes'] ?? null,
                         'user_id'        => Auth::id(),
                     ]);
 
                     // Si afecta caja, crear movimiento de caja automáticamente
-                    if ($paymentData['affects_cash'] && $currentShift) {
+                    if ($affectsCash && $currentShift) {
                         CashMovement::create([
                             'cash_shift_id'       => $currentShift->id,
                             'purchase_payment_id' => $payment->id,
