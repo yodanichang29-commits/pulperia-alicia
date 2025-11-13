@@ -453,23 +453,3 @@ function hourLabel(h) {
 
 
 
-// ======================
-// 7) Proveedores (conteo de productos activos por proveedor)
-// ======================
-(() => {
-  try {
-    const data = Array.isArray(DASH.providersTop) ? DASH.providersTop : [];
-    const cats = data.map(d => d.name);
-    const vals = data.map(d => Number(d.productos_activos||0));
-
-    if (!cats.length || isAllZero(vals))
-      return renderEmpty('#chartProviders','Sin productos por proveedor');
-
-    safeRender('#chartProviders', {
-      chart: { type: 'bar', height: 260, toolbar: { show:false } },
-      series: [{ name: 'Productos activos', data: vals }],
-      xaxis: { categories: cats, labels: { rotate: -20, trim: true } },
-      dataLabels: { enabled: false }
-    });
-  } catch(e){ console.error('chartProviders error', e); renderEmpty('#chartProviders'); }
-})();

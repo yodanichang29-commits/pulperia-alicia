@@ -399,20 +399,6 @@ if ($pmTotal === 0) {
 
 
 
-        // 9) Proveedores que VINIERON en el rango (hicieron entregas)
-        // Usar el mismo enfoque que funciona en Finanzas: inventory_transactions directamente
-        $providersTop = DB::table('inventory_transactions as it')
-            ->join('providers as pr', 'pr.id', '=', 'it.provider_id')
-            ->where('it.type', 'in')
-            ->where('it.reason', 'purchase')
-            ->whereBetween('it.moved_at', [$start, $end])
-            ->whereNotNull('it.provider_id')
-            ->groupBy('pr.id', 'pr.name')
-            ->selectRaw('pr.name, COUNT(it.id) as entregas')
-            ->orderByDesc('entregas')
-            ->limit(10)
-            ->get();
-
 
 
 
@@ -520,9 +506,6 @@ return view('dashboard.index', [
     'salesByMonth'   => $salesByMonth,
     'paymentShare'   => $paymentShare,
     'salesByDay'  => $salesByDay,
-
-    // ——— Proveedores ———
-    'providersTop' => $providersTop,
 
     // ——— KPIs & Heatmap ———
     'kpis'    => $kpis,
