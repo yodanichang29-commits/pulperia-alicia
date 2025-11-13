@@ -448,28 +448,6 @@ function hourLabel(h) {
   }
 })();
 
-// ======================
-// 7) Proveedores con más productos en inventario
-// ======================
-(() => {
-  try {
-    const data = Array.isArray(DASH.providersTop) ? DASH.providersTop : [];
-    const cats = data.map(d => d.name);
-    const vals = data.map(d => Number(d.total_productos||0));
-
-    if (!cats.length || isAllZero(vals))
-      return renderEmpty('#chartProviders','Sin productos en inventario');
-
-    safeRender('#chartProviders', {
-      chart: { type: 'bar', height: 260, toolbar: { show:false } },
-      series: [{ name: 'Productos', data: vals }],
-      xaxis: { categories: cats, labels: { rotate: -20, trim: true } },
-      dataLabels: { enabled: false },
-      colors: ['#FB7185']
-    });
-  } catch(e){ console.error('chartProviders error', e); renderEmpty('#chartProviders'); }
-})();
-
 
 
 
