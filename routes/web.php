@@ -21,6 +21,7 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SaleManagementController;
 use App\Http\Controllers\CashMovementController;
+use App\Http\Controllers\CalendarNoteController;
 
 
 
@@ -230,7 +231,20 @@ Route::middleware(['auth', 'sensitive'])->get('/reportes/ventas/{id}', [\App\Htt
 // Dashboard analítico
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
-    ->name('dashboard'); 
+    ->name('dashboard');
+
+/*
+|--------------------------------------------------------------------------
+| CALENDARIO DE NOTAS
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('calendar')->name('calendar.')->group(function () {
+    Route::get('/month/{year}/{month}', [CalendarNoteController::class, 'getMonthNotes'])->name('month');
+    Route::get('/day/{date}', [CalendarNoteController::class, 'getDayNote'])->name('day');
+    Route::post('/note', [CalendarNoteController::class, 'saveNote'])->name('save');
+    Route::delete('/note/{date}', [CalendarNoteController::class, 'deleteNote'])->name('delete');
+    Route::get('/priorities', [CalendarNoteController::class, 'getPriorities'])->name('priorities');
+});
 
 
 

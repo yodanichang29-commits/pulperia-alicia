@@ -83,6 +83,76 @@
     </div>
   </div>
 
+  {{-- CALENDARIO DE NOTAS --}}
+  <div class="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl shadow-2xl p-6 border-4 border-indigo-300">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-2xl text-gray-800">📅 Calendario y Notas</h3>
+      <div class="flex items-center gap-2">
+        <button id="calendarPrevYear" class="px-4 py-2 bg-white/80 hover:bg-white rounded-xl font-bold text-gray-700 shadow-md hover:shadow-lg transition-all">◀</button>
+        <span id="calendarCurrentYear" class="text-xl font-bold text-gray-800 px-4"></span>
+        <button id="calendarNextYear" class="px-4 py-2 bg-white/80 hover:bg-white rounded-xl font-bold text-gray-700 shadow-md hover:shadow-lg transition-all">▶</button>
+      </div>
+    </div>
+
+    {{-- Vista de 12 meses --}}
+    <div id="calendarYearView" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+
+    {{-- Vista de un mes completo --}}
+    <div id="calendarMonthView" class="hidden">
+      <div class="flex items-center justify-between mb-4">
+        <button id="calendarBackToYear" class="px-4 py-2 bg-white/80 hover:bg-white rounded-xl font-bold text-gray-700 shadow-md hover:shadow-lg transition-all">◀ Volver</button>
+        <h4 id="calendarMonthTitle" class="text-xl font-bold text-gray-800"></h4>
+      </div>
+      <div id="calendarDaysGrid" class="grid grid-cols-7 gap-2"></div>
+    </div>
+  </div>
+
+  {{-- Modal para editar nota del día --}}
+  <div id="noteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full border-4 border-indigo-300">
+      <div class="flex items-center justify-between mb-6">
+        <h3 id="noteModalTitle" class="text-2xl font-bold text-gray-800"></h3>
+        <button id="noteModalClose" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-lg font-bold text-gray-700 mb-2">📝 Nota</label>
+          <textarea id="noteContent" rows="6" class="w-full border-2 border-indigo-300 rounded-xl px-4 py-3 text-base focus:border-indigo-500 focus:ring-4 focus:ring-indigo-200" placeholder="Escribe tu nota aquí..."></textarea>
+        </div>
+
+        <div>
+          <label class="block text-lg font-bold text-gray-700 mb-2">🎨 Prioridad</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button class="priority-btn px-4 py-3 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all" data-priority="low" style="background-color: #10b981;">
+              🟢 Baja
+            </button>
+            <button class="priority-btn px-4 py-3 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all" data-priority="normal" style="background-color: #3b82f6;">
+              🔵 Normal
+            </button>
+            <button class="priority-btn px-4 py-3 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all" data-priority="important" style="background-color: #f59e0b;">
+              🟡 Importante
+            </button>
+            <button class="priority-btn px-4 py-3 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all" data-priority="urgent" style="background-color: #ef4444;">
+              🔴 Urgente
+            </button>
+          </div>
+        </div>
+
+        <div id="noteLastUpdated" class="text-sm text-gray-500 italic"></div>
+
+        <div class="flex gap-3 pt-4">
+          <button id="noteSaveBtn" class="flex-1 bg-gradient-to-r from-indigo-400 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+            💾 Guardar
+          </button>
+          <button id="noteDeleteBtn" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   {{-- LISTAS DE PRODUCTOS CON PROBLEMAS --}}
   @php $listas = [
     ['t' => '🔻 Productos con poco stock', 'data' => $lowStock, 'bg' => 'from-red-50 to-red-100', 'border' => 'border-red-300'],
