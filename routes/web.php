@@ -445,6 +445,44 @@ Route::get('/debug/gastos-operativos', function () {
 
 /*
 |--------------------------------------------------------------------------
+| RUTA DE DEBUG - VER TODOS LOS CASH MOVEMENTS
+|--------------------------------------------------------------------------
+*/
+Route::get('/debug/cash-movements-all', function () {
+    // Obtener TODOS los movimientos sin filtro
+    $allMovements = DB::table('cash_movements')
+        ->orderBy('id', 'desc')
+        ->limit(50)
+        ->get();
+
+    // Obtener estructura de la tabla
+    $columns = DB::select("PRAGMA table_info(cash_movements)");
+
+    // Contar totales
+    $totalCount = DB::table('cash_movements')->count();
+    $ingresoCount = DB::table('cash_movements')->where('type', 'ingreso')->count();
+    $egresoCount = DB::table('cash_movements')->where('type', 'egreso')->count();
+
+    // Obtener rango de fechas en la tabla
+    $minDate = DB::table('cash_movements')->min('date');
+    $maxDate = DB::table('cash_movements')->max('date');
+
+    return response()->json([
+        'message' => 'Todos los movimientos de caja (últimos 50)',
+        'total_count' => $totalCount,
+        'ingreso_count' => $ingresoCount,
+        'egreso_count' => $egresoCount,
+        'date_range' => [
+            'min' => $minDate,
+            'max' => $maxDate,
+        ],
+        'table_structure' => $columns,
+        'sample_movements' => $allMovements,
+    ], 200, [], JSON_PRETTY_PRINT);
+})->middleware('auth');
+
+/*
+|--------------------------------------------------------------------------
 | AUTH
 |--------------------------------------------------------------------------
 */
