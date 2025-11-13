@@ -23,8 +23,8 @@ protected static function booted()
 
     // Campos que se pueden guardar directamente
      protected $fillable = [
-        'name', 'barcode', 'price', 'cost', 'unit', 'photo',
-        'expires_at', 'provider_id', 'category', 'stock', 'min_stock', 'active'
+        'name', 'barcode', 'price', 'cost', 'photo',
+        'category', 'stock', 'min_stock', 'active'
     ];
 
     // Relación con movimientos de inventario
@@ -49,11 +49,6 @@ public function getImageUrlAttribute()
 }
 
 
-
-  public function provider()
-    {
-        return $this->belongsTo(Provider::class);
-    }
 
     // (opcional) helpers para margen y ganancia
     public function getMarginPercentAttribute(): float

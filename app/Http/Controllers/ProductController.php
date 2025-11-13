@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use App\Models\Provider;
 use Illuminate\Support\Facades\Storage;
 
 
@@ -17,11 +16,9 @@ use Illuminate\Support\Facades\Storage;
             'barcode'        => ['nullable','string','max:100'],
             'price'          => ['required','numeric','min:0'],
             'cost'           => ['nullable','numeric','min:0'],
-            'unit'           => ['nullable','string','max:50'],
-            'provider_id'    => ['nullable','integer','exists:providers,id'],
+            'category'       => ['nullable','string','max:100'],
             'stock'          => ['required','integer','min:0'],
             'min_stock'      => ['required','integer','min:0'],
-            'expires_at'     => ['nullable','date'],
             'active'         => ['sometimes','boolean'],
             'image'          => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'],
         ]);
@@ -48,11 +45,9 @@ use Illuminate\Support\Facades\Storage;
             'barcode'        => ['nullable','string','max:100'],
             'price'          => ['required','numeric','min:0'],
             'cost'           => ['nullable','numeric','min:0'],
-            'unit'           => ['nullable','string','max:50'],
-            'provider_id'    => ['nullable','integer','exists:providers,id'],
+            'category'       => ['nullable','string','max:100'],
             'stock'          => ['required','integer','min:0'],
             'min_stock'      => ['required','integer','min:0'],
-            'expires_at'     => ['nullable','date'],
             'active'         => ['sometimes','boolean'],
             'image'          => ['nullable','image','mimes:jpg,jpeg,png,webp','max:2048'],
             'remove_image'   => ['sometimes','boolean'],
@@ -87,15 +82,13 @@ use Illuminate\Support\Facades\Storage;
 
 public function create()
 {
-    $product   = new Product(['active' => true, 'stock' => 0, 'min_stock' => 0]);
-    $providers = Provider::orderBy('name')->get(['id','name']);
-    return view('inventario.productos.create', compact('product','providers'));
+    $product = new Product(['active' => true, 'stock' => 0, 'min_stock' => 0]);
+    return view('inventario.productos.create', compact('product'));
 }
 
 public function edit(Product $product)
 {
-    $providers = Provider::orderBy('name')->get(['id','name']);
-    return view('inventario.productos.edit', compact('product','providers'));
+    return view('inventario.productos.edit', compact('product'));
 }
 
 
@@ -110,7 +103,7 @@ public function buscar(Request $request)
 {
     $term = $request->get('q');
     $results = \App\Models\Product::where('name', 'like', "%{$term}%")
-        ->select('id', 'name', 'barcode', 'provider_id', 'cost', 'price', 'stock')
+        ->select('id', 'name', 'barcode', 'cost', 'price', 'stock', 'category')
         ->orderBy('name')
         ->take(10)
         ->get();
