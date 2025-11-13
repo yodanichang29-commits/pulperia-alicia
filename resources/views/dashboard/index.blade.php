@@ -278,8 +278,8 @@
       <div id="chartPayments" class="h-72"></div>
     </div>
     <div class="rounded-3xl bg-gradient-to-br from-rose-100 to-rose-200 shadow-2xl p-6 border-4 border-rose-300">
-      <h3 class="font-bold text-2xl text-gray-800 mb-4">🚚 Proveedores que vinieron</h3>
-      <p class="text-sm text-gray-600 mb-3 bg-white/60 px-3 py-2 rounded-xl">Proveedores que hicieron entregas en este periodo</p>
+      <h3 class="font-bold text-2xl text-gray-800 mb-4">🚚 Proveedores con más productos</h3>
+      <p class="text-sm text-gray-600 mb-3 bg-white/60 px-3 py-2 rounded-xl">Proveedores con más variedad de productos en inventario</p>
       <div id="chartProviders" class="h-72"></div>
     </div>
   </div>
@@ -299,7 +299,6 @@
     'slowMovers' => $slowMovers ?? [],
     'margins' => $marginProducts ?? [],
     'paymentShare' => $paymentShare ?? [],
-    'providersTop' => $providersTop ?? [],
     'kpis' => $kpis ?? [],
     'heatmap' => $heatmap ?? [],
     'abcChart' => $abcChart ?? [],

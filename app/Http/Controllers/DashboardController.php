@@ -399,36 +399,29 @@ if ($pmTotal === 0) {
 
 
 
-        // 9) Proveedores que VINIERON en el rango (hicieron entregas)
-        // Usar el mismo enfoque que funciona en Finanzas: inventory_transactions directamente
-        $providersTop = DB::table('inventory_transactions as it')
-            ->join('providers as pr', 'pr.id', '=', 'it.provider_id')
-            ->where('it.type', 'in')
-            ->where('it.reason', 'purchase')
-            ->whereBetween('it.moved_at', [$start, $end])
-            ->whereNotNull('it.provider_id')
-            ->groupBy('pr.id', 'pr.name')
-            ->selectRaw('pr.name, COUNT(it.id) as entregas')
-            ->orderByDesc('entregas')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // 9) Proveedores con más productos en inventario
+        $providersTop = DB::table('products')
+            ->join('providers', 'providers.id', '=', 'products.provider_id')
+            ->where('products.stock', '>', 0)
+            ->groupBy('providers.id', 'providers.name')
+            ->selectRaw('providers.name, COUNT(products.id) as total_productos')
+            ->orderByDesc('total_productos')
             ->limit(10)
             ->get();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // --- Alertas de productos (una sola fuente de verdad) ---
 $today = \Carbon\Carbon::today()->toDateString();
@@ -519,10 +512,8 @@ return view('dashboard.index', [
     'marginProducts' => $marginProducts,
     'salesByMonth'   => $salesByMonth,
     'paymentShare'   => $paymentShare,
+    'providersTop'   => $providersTop,
     'salesByDay'  => $salesByDay,
-
-    // ——— Proveedores ———
-    'providersTop' => $providersTop,
 
     // ——— KPIs & Heatmap ———
     'kpis'    => $kpis,
