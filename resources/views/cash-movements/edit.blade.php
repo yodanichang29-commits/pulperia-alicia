@@ -82,10 +82,14 @@
                                 
                                 <template x-if="type === 'ingreso'">
                                     <optgroup label="Categorías de Ingresos">
-                                        @foreach($categoriesIngreso as $cat)
-                                            <option value="{{ $cat }}" 
-                                                {{ old('category', $movement->category ?? 'Otro') === $cat ? 'selected' : '' }}>
-                                                {{ $cat }}
+                                        @foreach($categoriesIngreso as $key => $label)
+                                            @php
+                                                $value = is_numeric($key) ? $label : $key;
+                                                $display = $label;
+                                            @endphp
+                                            <option value="{{ $value }}"
+                                                {{ old('category', $movement->category ?? 'Otro') === $value ? 'selected' : '' }}>
+                                                {{ $display }}
                                             </option>
                                         @endforeach
                                     </optgroup>
@@ -93,10 +97,14 @@
 
                                 <template x-if="type === 'egreso'">
                                     <optgroup label="Categorías de Egresos">
-                                        @foreach($categoriesEgreso as $cat)
-                                            <option value="{{ $cat }}" 
-                                                {{ old('category', $movement->category ?? 'Otro') === $cat ? 'selected' : '' }}>
-                                                {{ $cat }}
+                                        @foreach($categoriesEgreso as $key => $label)
+                                            @php
+                                                $value = is_numeric($key) ? $label : $key;
+                                                $display = $label;
+                                            @endphp
+                                            <option value="{{ $value }}"
+                                                {{ old('category', $movement->category ?? 'Otro') === $value ? 'selected' : '' }}>
+                                                {{ $display }}
                                             </option>
                                         @endforeach
                                     </optgroup>

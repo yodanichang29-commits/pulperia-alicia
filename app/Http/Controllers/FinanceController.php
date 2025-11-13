@@ -72,12 +72,15 @@ class FinanceController extends Controller
         // ========================================
         // 4) ENTRADAS - OTROS INGRESOS
         // ========================================
+        // IMPORTANTE: Excluir 'ingreso_fondo_inicial' porque solo afecta el flujo de caja, no el balance
         $otrosIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'ingreso')
+            ->where('category', '!=', 'ingreso_fondo_inicial')
             ->sum('amount');
 
         $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'ingreso')
+            ->where('category', '!=', 'ingreso_fondo_inicial')
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
             ->groupBy('cat')
             ->orderBy('total', 'desc')
@@ -187,6 +190,7 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
 
         $prevOtrosIngresos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
             ->where('type', 'ingreso')
+            ->where('category', '!=', 'ingreso_fondo_inicial')
             ->sum('amount');
 
         $prevEntradas = $prevVentas + $prevAbonos + $prevOtrosIngresos;

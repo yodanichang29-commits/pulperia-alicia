@@ -145,6 +145,7 @@ class CashMovementController extends Controller
     {
         // Categorías predefinidas
         $categoriesIngreso = [
+            'ingreso_fondo_inicial' => 'Ingreso a fondo de caja (no afecta balance)',
             'Préstamo recibido',
             'Inversión/aporte personal',
             'Venta de activo',
@@ -222,6 +223,29 @@ class CashMovementController extends Controller
         // Agregar usuario que lo creó
         $validated['created_by'] = Auth::id();
 
+        // Si el pago es en EFECTIVO, vincularlo al turno de caja activo
+        if ($validated['payment_method'] === 'efectivo') {
+            $activeShift = CashShift::where('user_id', Auth::id())
+                                    ->whereNull('closed_at')
+                                    ->first();
+
+            if ($activeShift) {
+                $validated['cash_shift_id'] = $activeShift->id;
+
+                // Si es "ingreso_fondo_inicial", incrementar el fondo del turno
+                if ($validated['category'] === 'ingreso_fondo_inicial') {
+                    $activeShift->opening_float += $validated['amount'];
+                    $activeShift->save();
+                }
+            } else {
+                // Si no hay turno activo y es efectivo, mostrar error
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->withErrors(['payment_method' => 'No tienes un turno de caja abierto. Abre un turno o selecciona otro método de pago.']);
+            }
+        }
+
         // Crear el movimiento
         CashMovement::create($validated);
 
@@ -253,6 +277,7 @@ class CashMovementController extends Controller
     {
         // Categorías predefinidas
         $categoriesIngreso = [
+            'ingreso_fondo_inicial' => 'Ingreso a fondo de caja (no afecta balance)',
             'Préstamo recibido',
             'Inversión/aporte personal',
             'Venta de activo',
