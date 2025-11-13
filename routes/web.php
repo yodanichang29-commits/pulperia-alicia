@@ -377,6 +377,77 @@ Route::get('/debug/low-stock', function () {
 
 /*
 |--------------------------------------------------------------------------
+| RUTA DE DEBUG TEMPORAL - GASTOS OPERATIVOS
+|--------------------------------------------------------------------------
+*/
+Route::get('/debug/gastos-operativos', function () {
+    $start = request('start', \Carbon\Carbon::now()->startOfMonth()->toDateString());
+    $end = request('end', \Carbon\Carbon::today()->toDateString());
+
+    // Verificar si la columna 'source' existe
+    $hasSourceColumn = \Illuminate\Support\Facades\Schema::hasColumn('cash_movements', 'source');
+
+    // Total de movimientos de caja
+    $totalMovements = DB::table('cash_movements')->count();
+
+    // Movimientos de tipo egreso
+    $totalEgresos = DB::table('cash_movements')
+        ->where('type', 'egreso')
+        ->count();
+
+    // Egresos que NO son pago_proveedor
+    $egresosOperativos = DB::table('cash_movements')
+        ->where('type', 'egreso')
+        ->where('category', '!=', 'pago_proveedor')
+        ->get();
+
+    // Suma de gastos operativos
+    $sumaGastosOperativos = DB::table('cash_movements')
+        ->where('type', 'egreso')
+        ->where('category', '!=', 'pago_proveedor')
+        ->sum('amount');
+
+    // Gastos operativos en el rango de fechas
+    $gastosEnRango = DB::table('cash_movements')
+        ->whereBetween('date', [$start, $end])
+        ->where('type', 'egreso')
+        ->where('category', '!=', 'pago_proveedor')
+        ->get();
+
+    $sumaEnRango = $gastosEnRango->sum('amount');
+
+    // Categorías de egresos
+    $categorias = DB::table('cash_movements')
+        ->where('type', 'egreso')
+        ->select('category', DB::raw('COUNT(*) as count'), DB::raw('SUM(amount) as total'))
+        ->groupBy('category')
+        ->get();
+
+    return response()->json([
+        'message' => 'Debug de gastos operativos',
+        'database_info' => [
+            'source_column_exists' => $hasSourceColumn,
+            'total_cash_movements' => $totalMovements,
+        ],
+        'egresos_info' => [
+            'total_egresos' => $totalEgresos,
+            'egresos_operativos_count' => $egresosOperativos->count(),
+            'suma_gastos_operativos_total' => number_format($sumaGastosOperativos, 2),
+        ],
+        'rango_de_fechas' => [
+            'start' => $start,
+            'end' => $end,
+            'gastos_en_rango_count' => $gastosEnRango->count(),
+            'suma_en_rango' => number_format($sumaEnRango, 2),
+            'gastos' => $gastosEnRango,
+        ],
+        'categorias_de_egresos' => $categorias,
+        'sample_egresos_operativos' => $egresosOperativos->take(10),
+    ]);
+})->middleware('auth');
+
+/*
+|--------------------------------------------------------------------------
 | AUTH
 |--------------------------------------------------------------------------
 */
