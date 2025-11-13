@@ -284,8 +284,8 @@
                               @change="updateAffectsCash(idx)"
                               :name="`payments[${idx}][method]`"
                               class="w-full rounded-lg border-gray-300 text-sm">
-                        <option value="caja">💵 Efectivo de caja</option>
-                        <option value="externo">💼 Dinero externo</option>
+                        <option value="caja">💵 Efectivo de caja (sale del turno)</option>
+                        <option value="efectivo_personal">💰 Efectivo personal (no sale del turno)</option>
                         <option value="credito">📝 A crédito</option>
                         <option value="transferencia">🏦 Transferencia</option>
                         <option value="tarjeta">💳 Tarjeta</option>

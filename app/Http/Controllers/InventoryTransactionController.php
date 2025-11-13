@@ -79,9 +79,9 @@ class InventoryTransactionController extends Controller
 
             // Validación de pagos (solo para compras)
             'payments'              => 'nullable|array|min:1',
-            'payments.*.method'     => 'nullable|in:caja,externo,credito,transferencia,tarjeta',
+            'payments.*.method'     => 'nullable|in:caja,efectivo_personal,credito,transferencia,tarjeta',
             'payments.*.amount'     => 'nullable|numeric|min:0',
-            'payments.*.affects_cash' => 'nullable|boolean',
+            'payments.*.affects_cash' => 'nullable', // Aceptar cualquier valor (string o boolean)
             'payments.*.notes'      => 'nullable|string|max:500',
         ]);
 
@@ -94,6 +94,22 @@ class InventoryTransactionController extends Controller
         $isPurchase = ($data['type'] === 'in' && $data['reason'] === 'purchase');
         if ($isPurchase && empty($data['payments'])) {
             return back()->withErrors(['payments' => 'Debes especificar al menos un método de pago para la compra.'])->withInput();
+        }
+
+        // Validar que si se usa "Efectivo de caja", haya turno abierto
+        if ($isPurchase && !empty($data['payments'])) {
+            $usaCaja = collect($data['payments'])->contains(function($payment) {
+                return ($payment['method'] ?? '') === 'caja' && (float)($payment['amount'] ?? 0) > 0;
+            });
+
+            if ($usaCaja) {
+                $currentShift = CashShift::openForUser(Auth::id())->first();
+                if (!$currentShift) {
+                    return back()->withErrors([
+                        'payments' => 'No puedes pagar con efectivo de caja sin tener un turno abierto. Abre un turno primero o usa "Efectivo personal".'
+                    ])->withInput();
+                }
+            }
         }
 
         // 3) Ejecutar todo en transacción
