@@ -395,23 +395,20 @@ Route::get('/debug/gastos-operativos', function () {
         ->where('type', 'egreso')
         ->count();
 
-    // Egresos que NO son pago_proveedor
+    // Todos los egresos (gastos operativos)
     $egresosOperativos = DB::table('cash_movements')
         ->where('type', 'egreso')
-        ->where('category', '!=', 'pago_proveedor')
         ->get();
 
     // Suma de gastos operativos
     $sumaGastosOperativos = DB::table('cash_movements')
         ->where('type', 'egreso')
-        ->where('category', '!=', 'pago_proveedor')
         ->sum('amount');
 
     // Gastos operativos en el rango de fechas
     $gastosEnRango = DB::table('cash_movements')
         ->whereBetween('date', [$start, $end])
         ->where('type', 'egreso')
-        ->where('category', '!=', 'pago_proveedor')
         ->get();
 
     $sumaEnRango = $gastosEnRango->sum('amount');
