@@ -405,7 +405,7 @@ if ($pmTotal === 0) {
             ->join('providers as pr', 'pr.id', '=', 'it.provider_id')
             ->where('it.type', 'in')
             ->where('it.reason', 'purchase')
-            ->whereBetween('it.moved_at', [$start->toDateString(), $end->toDateString()])
+            ->whereBetween('it.moved_at', [$start, $end])
             ->whereNotNull('it.provider_id')
             ->groupBy('pr.id', 'pr.name')
             ->selectRaw('pr.name, COUNT(it.id) as entregas')
