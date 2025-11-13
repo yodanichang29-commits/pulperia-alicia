@@ -461,9 +461,33 @@
                     <span class="text-blue-100">Total Entradas:</span>
                     <span class="font-bold">L {{ number_format($totalEntradas, 2) }}</span>
                 </div>
+                <div class="border-t-2 border-white/20 my-2"></div>
                 <div class="flex justify-between items-center text-lg">
                     <span class="text-blue-100">Total Salidas:</span>
                     <span class="font-bold">L {{ number_format($totalSalidas, 2) }}</span>
+                </div>
+                <div class="ml-6 space-y-2 text-sm">
+                    <div class="flex justify-between items-center text-blue-50">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-orange-300 rounded-full"></span>
+                            Compras de mercancía:
+                        </span>
+                        <span>L {{ number_format($compras, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-blue-50">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-red-300 rounded-full"></span>
+                            Mermas/Productos dañados:
+                        </span>
+                        <span>L {{ number_format($mermas, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-blue-50">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                            Gastos operativos:
+                        </span>
+                        <span>L {{ number_format($gastosOperativos, 2) }}</span>
+                    </div>
                 </div>
                 <div class="border-t-2 border-white/30 my-4"></div>
                 <div class="flex justify-between items-center">
