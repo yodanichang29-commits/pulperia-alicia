@@ -19,6 +19,7 @@ class CashMovement extends Model
      * Los atributos que se pueden asignar masivamente.
      */
     protected $fillable = [
+        'cash_shift_id',
         'date',
         'type',
         'category',
@@ -45,6 +46,14 @@ class CashMovement extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relación con el turno de caja.
+     */
+    public function cashShift()
+    {
+        return $this->belongsTo(CashShift::class, 'cash_shift_id');
     }
 
     /**
