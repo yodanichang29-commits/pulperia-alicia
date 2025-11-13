@@ -507,7 +507,6 @@
                         <span class="font-semibold">L {{ number_format($abonosTotal, 2) }}</span>
                     </div>
 
-                    @if($otrosIngresos > 0)
                     <div class="flex justify-between items-center text-blue-50">
                         <span class="flex items-center gap-2 pl-2">
                             <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
@@ -515,7 +514,6 @@
                         </span>
                         <span class="font-bold">L {{ number_format($otrosIngresos, 2) }}</span>
                     </div>
-                    @endif
                 </div>
 
                 <div class="border-t-2 border-white/20 my-2"></div>
