@@ -86,6 +86,11 @@ class FinanceController extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
+        // DEBUG: Contar registros de ingresos
+        $countIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'ingreso')
+            ->count();
+
         // ========================================
         // 5) SALIDAS - INVENTARIO
         // ========================================
@@ -119,6 +124,15 @@ class FinanceController extends Controller
             ->groupBy('cat')
             ->orderBy('total', 'desc')
             ->get();
+
+        // DEBUG: Contar registros de egresos
+        $countEgresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('type', 'egreso')
+            ->count();
+
+        // DEBUG: Total de cash_movements en el rango
+        $totalCashMovements = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->count();
 
         // Top 5 gastos más grandes
         $top5Gastos = $gastosOperativosPorCategoria->take(5);
@@ -432,9 +446,14 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             
             // Alertas
             'alertas',
-            
+
             // Gráficas
-            'datosGrafica'
+            'datosGrafica',
+
+            // DEBUG: Contadores
+            'countIngresos',
+            'countEgresos',
+            'totalCashMovements'
         ));
     }
 }

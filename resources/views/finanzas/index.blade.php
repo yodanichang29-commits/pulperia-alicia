@@ -29,11 +29,35 @@
             <p class="text-sm text-gray-600 mt-2">📊 Período: {{ $diasPeriodo }} días</p>
         </form>
 
+        {{-- DEBUG INFO --}}
+        <div class="bg-purple-50 border-l-4 border-purple-500 rounded-xl p-4">
+            <p class="font-bold text-purple-800 mb-2">🔍 Información de Debug - Movimientos de Caja</p>
+            <div class="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                    <span class="text-purple-600">Total registros en rango:</span>
+                    <span class="font-bold text-purple-900">{{ $totalCashMovements }}</span>
+                </div>
+                <div>
+                    <span class="text-purple-600">Ingresos encontrados:</span>
+                    <span class="font-bold text-purple-900">{{ $countIngresos }}</span>
+                </div>
+                <div>
+                    <span class="text-purple-600">Egresos encontrados:</span>
+                    <span class="font-bold text-purple-900">{{ $countEgresos }}</span>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-purple-600">
+                <p><strong>Rango:</strong> {{ Carbon\Carbon::parse($start)->format('d/m/Y') }} - {{ Carbon\Carbon::parse($end)->format('d/m/Y') }}</p>
+                <p><strong>Otros Ingresos calculados:</strong> L {{ number_format($otrosIngresos, 2) }}</p>
+                <p><strong>Gastos Operativos calculados:</strong> L {{ number_format($gastosOperativos, 2) }}</p>
+            </div>
+        </div>
+
         {{-- ALERTAS --}}
         @if(count($alertas) > 0)
         <div class="space-y-3">
             @foreach($alertas as $alerta)
-                <div class="rounded-xl p-4 border-l-4 
+                <div class="rounded-xl p-4 border-l-4
                     {{ $alerta['tipo'] === 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : '' }}
                     {{ $alerta['tipo'] === 'warning' ? 'bg-yellow-50 border-yellow-500 text-yellow-800' : '' }}
                     {{ $alerta['tipo'] === 'danger' ? 'bg-red-50 border-red-500 text-red-800' : '' }}">
