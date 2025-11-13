@@ -8,7 +8,6 @@
         <tr>
           <th class="px-4 py-3">Producto</th>
           <th class="px-4 py-3">Código</th>
-          <th class="px-4 py-3">Proveedor</th>
           <th class="px-4 py-3 text-center">Stock</th>
           <th class="px-4 py-3 text-center">Mín.</th>
           <th class="px-4 py-3 text-right">P. Compra</th>
@@ -121,8 +120,6 @@ if ($low) {
           </td>
 
             <td class="px-4 py-3 text-gray-700 {{ $cellBg }}">{{ $p->barcode ?: '—' }}</td>
-
-  <td class="px-4 py-3 text-gray-700 {{ $cellBg }}">{{ optional($p->provider)->name ?: '—' }}</td>
 
           {{-- Stock --}}
   <td class="px-4 py-3 text-sm text-center {{ $cellBg }} {{ $low ? 'text-red-700 font-semibold' : 'text-gray-700' }}">

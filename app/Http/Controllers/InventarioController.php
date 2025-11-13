@@ -53,11 +53,10 @@ class InventarioController extends Controller
 
     // Base del listado (misma que ya usas para la tabla)
     $base = \App\Models\Product::query()
-        ->with('provider')
         ->when($q, function ($query) use ($q) {
             $query->where('name', 'like', "%{$q}%")
                   ->orWhere('barcode', 'like', "%{$q}%")
-                  ->orWhereHas('provider', fn($qq) => $qq->where('name', 'like', "%{$q}%"));
+                  ->orWhere('category', 'like', "%{$q}%");
         })
         ->orderBy('name');
 
