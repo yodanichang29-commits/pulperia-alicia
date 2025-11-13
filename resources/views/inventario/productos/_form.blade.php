@@ -93,6 +93,23 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 
   <div>
+    <label class="block text-sm font-medium text-gray-700">Unidad</label>
+    <input name="unit" type="text" placeholder="unidad, litro, kg, paquete…"
+           value="{{ old('unit', $product->unit) }}"
+           class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">Ej: litro, kg, paquete, caja, etc.</p>
+    @error('unit')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Fecha de expiración (opcional)</label>
+    <input name="expires_at" type="date"
+           value="{{ old('expires_at', optional($product->expires_at)->format('Y-m-d')) }}"
+           class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+    @error('expires_at')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+  </div>
+
+  <div>
     <label class="block text-sm font-medium text-gray-700">Stock</label>
     <input name="stock" type="number" min="0" required
            value="{{ old('stock', $product->stock) }}"

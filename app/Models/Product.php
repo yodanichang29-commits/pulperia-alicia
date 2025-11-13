@@ -23,8 +23,8 @@ protected static function booted()
 
     // Campos que se pueden guardar directamente
      protected $fillable = [
-        'name', 'barcode', 'price', 'cost', 'photo',
-        'category', 'stock', 'min_stock', 'active'
+        'name', 'barcode', 'price', 'cost', 'unit', 'photo',
+        'category', 'stock', 'min_stock', 'expires_at', 'active'
     ];
 
     // Relación con movimientos de inventario
