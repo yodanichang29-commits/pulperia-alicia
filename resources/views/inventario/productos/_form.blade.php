@@ -19,7 +19,7 @@
                   file:bg-indigo-50 file:text-indigo-700
                   hover:file:bg-indigo-100">
 
-    @if(!empty($product->image_path))
+    @if(!empty($product->photo))
       <label class="inline-flex items-center gap-2 ms-2">
         <input type="checkbox" name="remove_image" value="1"
                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">

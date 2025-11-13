@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Storage;
         if ($request->hasFile('image')) {
             // guarda en storage/app/public/products
             $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = $path;
+            $data['photo'] = $path;
         }
 
         $product = Product::create($data);
@@ -61,18 +61,18 @@ use Illuminate\Support\Facades\Storage;
         $data['active'] = $request->boolean('active');
 
         // 🗑️ quitar imagen
-        if ($request->boolean('remove_image') && $product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
-            $data['image_path'] = null;
+        if ($request->boolean('remove_image') && $product->photo) {
+            Storage::disk('public')->delete($product->photo);
+            $data['photo'] = null;
         }
 
         // 📸 nueva imagen
         if ($request->hasFile('image')) {
-            if ($product->image_path) {
-                Storage::disk('public')->delete($product->image_path);
+            if ($product->photo) {
+                Storage::disk('public')->delete($product->photo);
             }
             $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = $path;
+            $data['photo'] = $path;
         }
 
         $product->update($data);

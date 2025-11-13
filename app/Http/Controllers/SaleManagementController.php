@@ -569,7 +569,7 @@ public function suggestProducts(Request $request)
         })
         ->orderBy('name')
         ->limit(15)
-        ->get(['id','name','price','category','barcode','image_path']);
+        ->get(['id','name','price','category','barcode','photo']);
 
     // Estructura ligera para el front
     $data = $products->map(function($p){
@@ -581,7 +581,7 @@ public function suggestProducts(Request $request)
             'barcode'  => $p->barcode,
             'image'    => method_exists($p, 'getImageUrlAttribute')
                             ? $p->image_url
-                            : ($p->image_path ?? null),
+                            : ($p->photo ?? null),
         ];
     });
 

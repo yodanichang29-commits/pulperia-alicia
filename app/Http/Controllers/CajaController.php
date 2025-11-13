@@ -32,7 +32,7 @@ class CajaController extends Controller
             'products.id',
             'products.name',
             'products.price',
-            'products.image_path',
+            'products.photo',
             'products.category'
         )
         ->leftJoin('sale_items', function($join) use ($mesActual) {
@@ -42,7 +42,7 @@ class CajaController extends Controller
                  ->where('sale_items.created_at', '<', now()->addMonth()->startOfMonth()->format('Y-m-d H:i:s'));
         })
         ->selectRaw('COALESCE(SUM(sale_items.qty), 0) as total_vendido')
-        ->groupBy('products.id', 'products.name', 'products.price', 'products.image_path', 'products.category')
+        ->groupBy('products.id', 'products.name', 'products.price', 'products.photo', 'products.category')
         ->orderByDesc('total_vendido')  // Los más vendidos primero
         ->orderBy('products.name')       // Desempate por nombre
         ->get();
