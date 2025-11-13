@@ -72,15 +72,18 @@ class FinanceController extends Controller
         // ========================================
         // 4) ENTRADAS - OTROS INGRESOS
         // ========================================
-        // IMPORTANTE: Excluir 'ingreso_fondo_inicial' porque solo afecta el flujo de caja, no el balance
+        // IMPORTANTE: Solo incluir source='externo' (dinero externo al negocio)
+        // Excluir 'ingreso_fondo_inicial' porque solo afecta el flujo de caja, no el balance
         $otrosIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'ingreso')
             ->where('category', '!=', 'ingreso_fondo_inicial')
+            ->where('source', 'externo')
             ->sum('amount');
 
         $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'ingreso')
             ->where('category', '!=', 'ingreso_fondo_inicial')
+            ->where('source', 'externo')
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
             ->groupBy('cat')
             ->orderBy('total', 'desc')
@@ -108,16 +111,19 @@ class FinanceController extends Controller
         // ========================================
         // 6) SALIDAS - GASTOS OPERATIVOS
         // ========================================
-        // IMPORTANTE: Excluir 'pago_proveedor' porque las compras ya se cuentan en $compras
+        // IMPORTANTE: Solo incluir source='externo' (dinero externo al negocio)
+        // Excluir 'pago_proveedor' porque las compras ya se cuentan en $compras
         // Los pagos de compras solo afectan el flujo de caja (turno), no el Balance General
         $gastosOperativos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'egreso')
             ->where('category', '!=', 'pago_proveedor')
+            ->where('source', 'externo')
             ->sum('amount');
 
         $gastosOperativosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('type', 'egreso')
             ->where('category', '!=', 'pago_proveedor')
+            ->where('source', 'externo')
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
             ->groupBy('cat')
             ->orderBy('total', 'desc')
@@ -191,6 +197,7 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
         $prevOtrosIngresos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
             ->where('type', 'ingreso')
             ->where('category', '!=', 'ingreso_fondo_inicial')
+            ->where('source', 'externo')
             ->sum('amount');
 
         $prevEntradas = $prevVentas + $prevAbonos + $prevOtrosIngresos;
@@ -206,6 +213,7 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
         $prevGastos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
             ->where('type', 'egreso')
             ->where('category', '!=', 'pago_proveedor')
+            ->where('source', 'externo')
             ->sum('amount');
 
         $prevSalidas = $prevCompras + $prevMermas + $prevGastos;
