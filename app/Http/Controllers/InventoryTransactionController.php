@@ -130,11 +130,6 @@ class InventoryTransactionController extends Controller
             foreach ($data['items'] as $row) {
                 $product = Product::findOrFail($row['product_id']);
 
-                // Validar que el producto pertenezca al proveedor seleccionado (si aplica)
-                if (!empty($data['provider_id']) && (int)$product->provider_id !== (int)$data['provider_id']) {
-                    throw new \RuntimeException("El producto {$product->name} no pertenece al proveedor seleccionado.");
-                }
-
                 // Cantidad y costo unitario (fallback a cost)
                 $qty  = (int) $row['qty'];
                 $cost = (float) ($row['unit_cost'] ?? ($product->cost ?? 0));
