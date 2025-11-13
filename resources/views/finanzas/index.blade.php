@@ -487,6 +487,37 @@
                     <span class="font-bold">L {{ number_format($totalEntradas, 2) }}</span>
                 </div>
 
+                {{-- DESGLOSE DE ENTRADAS --}}
+                <div class="ml-6 space-y-3 text-sm bg-white/10 rounded-lg p-4">
+                    <p class="text-xs text-blue-100 font-semibold mb-2">📋 Desglose de Entradas:</p>
+
+                    <div class="flex justify-between items-center text-blue-50 mb-1">
+                        <span class="flex items-center gap-2 pl-2">
+                            <span class="w-1.5 h-1.5 bg-emerald-300 rounded-full"></span>
+                            Ventas del negocio
+                        </span>
+                        <span class="font-semibold">L {{ number_format($totalVentas, 2) }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center text-blue-50 mb-1">
+                        <span class="flex items-center gap-2 pl-2">
+                            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                            Abonos de clientes
+                        </span>
+                        <span class="font-semibold">L {{ number_format($abonosTotal, 2) }}</span>
+                    </div>
+
+                    @if($otrosIngresos > 0)
+                    <div class="flex justify-between items-center text-blue-50">
+                        <span class="flex items-center gap-2 pl-2">
+                            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            Otros Ingresos (ganancias extras)
+                        </span>
+                        <span class="font-bold">L {{ number_format($otrosIngresos, 2) }}</span>
+                    </div>
+                    @endif
+                </div>
+
                 <div class="border-t-2 border-white/20 my-2"></div>
 
                 {{-- SALIDAS --}}
