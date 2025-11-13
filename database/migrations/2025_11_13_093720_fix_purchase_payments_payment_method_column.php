@@ -17,43 +17,45 @@ return new class extends Migration
 
         DB::statement('PRAGMA foreign_keys = OFF');
 
-        // Renombrar tabla existente
-        Schema::rename('purchase_payments', 'purchase_payments_old');
+        // Respaldar datos existentes si los hay
+        $existingPayments = DB::table('purchase_payments')->get();
 
-        // Crear nueva tabla con la estructura correcta
-        Schema::create('purchase_payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('purchase_id')->constrained('inventory_transactions')->cascadeOnDelete();
-            $table->decimal('amount', 12, 2);
-            $table->string('payment_method'); // STRING en lugar de ENUM
-            // Valores permitidos: 'caja', 'efectivo_personal', 'credito', 'transferencia', 'tarjeta'
-            $table->boolean('affects_cash')->default(false);
-            $table->text('notes')->nullable();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
-        });
+        // Eliminar tabla completamente
+        DB::statement('DROP TABLE IF EXISTS purchase_payments');
 
-        // Copiar datos existentes (si los hay), mapeando 'externo' → 'efectivo_personal'
+        // Recrear tabla con la estructura correcta (sin ENUM, usando STRING)
         DB::statement("
-            INSERT INTO purchase_payments (id, purchase_id, amount, payment_method, affects_cash, notes, user_id, created_at, updated_at)
-            SELECT
-                id,
-                purchase_id,
-                amount,
-                CASE
-                    WHEN payment_method = 'externo' THEN 'efectivo_personal'
-                    ELSE payment_method
-                END as payment_method,
-                affects_cash,
-                notes,
-                user_id,
-                created_at,
-                updated_at
-            FROM purchase_payments_old
+            CREATE TABLE purchase_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                purchase_id INTEGER NOT NULL,
+                amount NUMERIC(12, 2) NOT NULL,
+                payment_method VARCHAR NOT NULL,
+                affects_cash INTEGER NOT NULL DEFAULT 0,
+                notes TEXT,
+                user_id INTEGER NOT NULL,
+                created_at DATETIME,
+                updated_at DATETIME,
+                FOREIGN KEY(purchase_id) REFERENCES inventory_transactions(id) ON DELETE CASCADE,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
         ");
 
-        // Eliminar tabla vieja
-        Schema::drop('purchase_payments_old');
+        // Restaurar datos, mapeando 'externo' → 'efectivo_personal'
+        foreach ($existingPayments as $payment) {
+            $paymentMethod = $payment->payment_method === 'externo' ? 'efectivo_personal' : $payment->payment_method;
+
+            DB::table('purchase_payments')->insert([
+                'id' => $payment->id,
+                'purchase_id' => $payment->purchase_id,
+                'amount' => $payment->amount,
+                'payment_method' => $paymentMethod,
+                'affects_cash' => $payment->affects_cash,
+                'notes' => $payment->notes,
+                'user_id' => $payment->user_id,
+                'created_at' => $payment->created_at,
+                'updated_at' => $payment->updated_at,
+            ]);
+        }
 
         DB::statement('PRAGMA foreign_keys = ON');
     }
