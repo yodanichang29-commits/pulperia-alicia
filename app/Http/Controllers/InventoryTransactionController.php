@@ -77,39 +77,11 @@ class InventoryTransactionController extends Controller
             'items.*.qty'           => 'required|integer|min:1',
             'items.*.unit_cost'     => 'nullable|numeric|min:0',
 
-            // Validación de pagos (solo para compras)
-            'payments'              => 'nullable|array|min:1',
-            'payments.*.method'     => 'nullable|in:caja,efectivo_personal,credito,transferencia,tarjeta',
-            'payments.*.amount'     => 'nullable|numeric|min:0',
-            'payments.*.affects_cash' => 'nullable', // Aceptar cualquier valor (string o boolean)
-            'payments.*.notes'      => 'nullable|string|max:500',
         ]);
 
         // 2) Reglas extra
         if ($data['type'] === 'in' && $data['reason'] === 'purchase' && empty($data['provider_id'])) {
             return back()->withErrors(['provider_id' => 'Debes seleccionar un proveedor para una compra.'])->withInput();
-        }
-
-        // Validar pagos para compras
-        $isPurchase = ($data['type'] === 'in' && $data['reason'] === 'purchase');
-        if ($isPurchase && empty($data['payments'])) {
-            return back()->withErrors(['payments' => 'Debes especificar al menos un método de pago para la compra.'])->withInput();
-        }
-
-        // Validar que si se usa "Efectivo de caja", haya turno abierto
-        if ($isPurchase && !empty($data['payments'])) {
-            $usaCaja = collect($data['payments'])->contains(function($payment) {
-                return ($payment['method'] ?? '') === 'caja' && (float)($payment['amount'] ?? 0) > 0;
-            });
-
-            if ($usaCaja) {
-                $currentShift = CashShift::openForUser(Auth::id())->first();
-                if (!$currentShift) {
-                    return back()->withErrors([
-                        'payments' => 'No puedes pagar con efectivo de caja sin tener un turno abierto. Abre un turno primero o usa "Efectivo personal".'
-                    ])->withInput();
-                }
-            }
         }
 
         // 3) Ejecutar todo en transacción
@@ -185,59 +157,6 @@ class InventoryTransactionController extends Controller
             // Total en encabezado
             $tx->update(['total_cost' => $total]);
 
-            // ===== PROCESAR PAGOS (solo para compras) =====
-            if ($isPurchase && !empty($data['payments'])) {
-                // Calcular suma de pagos
-                $totalPayments = collect($data['payments'])->sum(function($p) {
-                    return (float) ($p['amount'] ?? 0);
-                });
-
-                // Validar que los pagos sumen el total de la compra
-                if (abs($totalPayments - $total) > 0.01) {
-                    throw new \RuntimeException(
-                        "Los pagos (L{$totalPayments}) no coinciden con el total de la compra (L{$total})"
-                    );
-                }
-
-                // Obtener el turno abierto del usuario actual (si existe)
-                $currentShift = CashShift::openForUser(Auth::id())->first();
-
-                // Crear registros de pagos
-                foreach ($data['payments'] as $payment) {
-                    $amount = (float) ($payment['amount'] ?? 0);
-                    if ($amount <= 0) continue; // Saltar pagos en cero
-
-                    // Convertir affects_cash correctamente (puede venir como string "1"/"0" o boolean)
-                    $affectsCash = filter_var($payment['affects_cash'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-                    // Crear el registro de pago
-                    $purchasePayment = PurchasePayment::create([
-                        'purchase_id'    => $tx->id,
-                        'amount'         => $amount,
-                        'payment_method' => $payment['method'],
-                        'affects_cash'   => $affectsCash,
-                        'notes'          => $payment['notes'] ?? null,
-                        'user_id'        => Auth::id(),
-                    ]);
-
-                    // Si afecta la caja, crear movimiento de efectivo vinculado al turno
-                    if ($affectsCash) {
-                        CashMovement::create([
-                            'cash_shift_id'  => $currentShift?->id, // Vincular al turno actual
-                            'date'           => $data['moved_at'] ?? now(),
-                            'type'           => 'egreso',
-                            'category'       => 'pago_proveedor',
-                            'description'    => "Pago compra #{$tx->id}" .
-                                              (!empty($data['reference']) ? " (Ref: {$data['reference']})" : ""),
-                            'amount'         => $amount,
-                            'payment_method' => 'efectivo', // Pagos de caja son siempre efectivo
-                            'notes'          => $payment['notes'] ?? null,
-                            'created_by'     => Auth::id(),
-                        ]);
-                    }
-                }
-            }
-
             DB::commit();
 
             return redirect()
@@ -257,8 +176,8 @@ class InventoryTransactionController extends Controller
      */
   public function show(InventoryTransaction $transaction)
 {
-    // Carga los renglones + producto + usuario + proveedor + pagos
-    $transaction->load(['items.product','user','provider','payments']);
+    // Carga los renglones + producto + usuario + proveedor
+    $transaction->load(['items.product','user','provider']);
 
     return view('inventario.movimientos.show', compact('transaction'));
 }

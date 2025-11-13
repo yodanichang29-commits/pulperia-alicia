@@ -31,45 +31,8 @@
        notes: '',
        items: [{ product_id:'', product_name:'', qty:1, unit_cost:'', resultados:[] }],
 
-       // === Sistema de pagos ===
-       payments: [{ method: 'caja', amount: '', affects_cash: true, notes: '' }],
-
        add(){ this.items.push({ product_id:'', product_name:'', qty:1, unit_cost:'', resultados:[] }); },
        remove(i){ this.items.splice(i,1); },
-
-       addPayment(){ this.payments.push({ method: 'caja', amount: '', affects_cash: true, notes: '' }); },
-       removePayment(i){ if(this.payments.length > 1) this.payments.splice(i,1); },
-
-       // Actualizar affects_cash cuando cambia el método
-       updateAffectsCash(i){
-         this.payments[i].affects_cash = this.payments[i].method === 'caja';
-       },
-
-       // Calcular total de la compra
-       get totalCost(){
-         return this.items.reduce((sum, item) => {
-           const qty = parseFloat(item.qty) || 0;
-           const cost = parseFloat(item.unit_cost) || 0;
-           return sum + (qty * cost);
-         }, 0);
-       },
-
-       // Calcular total de pagos
-       get totalPayments(){
-         return this.payments.reduce((sum, p) => {
-           return sum + (parseFloat(p.amount) || 0);
-         }, 0);
-       },
-
-       // Diferencia (pendiente o sobrepago)
-       get paymentDifference(){
-         return this.totalCost - this.totalPayments;
-       },
-
-       // Validar que los pagos cuadren
-       get paymentsValid(){
-         return Math.abs(this.paymentDifference) < 0.01;
-       },
 
        // === Autocompletar proveedor ===
        buscarProveedor(term){
@@ -235,128 +198,9 @@
         </table>
       </div>
 
-      <!-- === DESGLOSE DE PAGOS (solo para compras) === -->
-      <div x-show="type === 'in' && reason === 'purchase'" class="space-y-4">
-        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow p-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">💰 ¿Cómo vas a pagar esta compra?</h3>
-
-          <!-- Resumen de totales -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-lg p-4 text-center">
-              <div class="text-sm text-gray-600">Total de la compra</div>
-              <div class="text-2xl font-bold text-purple-600" x-text="'L ' + totalCost.toFixed(2)"></div>
-            </div>
-            <div class="bg-white rounded-lg p-4 text-center">
-              <div class="text-sm text-gray-600">Total de pagos</div>
-              <div class="text-2xl font-bold"
-                   :class="paymentsValid ? 'text-green-600' : 'text-orange-600'"
-                   x-text="'L ' + totalPayments.toFixed(2)"></div>
-            </div>
-            <div class="bg-white rounded-lg p-4 text-center">
-              <div class="text-sm text-gray-600">Diferencia</div>
-              <div class="text-2xl font-bold"
-                   :class="paymentsValid ? 'text-green-600' : (paymentDifference > 0 ? 'text-red-600' : 'text-orange-600')"
-                   x-text="'L ' + Math.abs(paymentDifference).toFixed(2)"></div>
-              <div class="text-xs" x-show="!paymentsValid">
-                <span x-show="paymentDifference > 0" class="text-red-600">Falta pagar</span>
-                <span x-show="paymentDifference < 0" class="text-orange-600">Sobrepago</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabla de pagos -->
-          <div class="bg-white rounded-lg overflow-hidden shadow-sm">
-            <table class="min-w-full text-sm">
-              <thead class="bg-purple-100">
-                <tr>
-                  <th class="px-3 py-2 text-left">Método de pago</th>
-                  <th class="px-3 py-2 text-right w-40">Monto (L)</th>
-                  <th class="px-3 py-2 text-center w-32">Afecta caja</th>
-                  <th class="px-3 py-2 text-left">Notas</th>
-                  <th class="px-3 py-2 w-16"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="(pago, idx) in payments" :key="idx">
-                  <tr class="border-t">
-                    <td class="px-3 py-2">
-                      <select x-model="pago.method"
-                              @change="updateAffectsCash(idx)"
-                              :name="`payments[${idx}][method]`"
-                              class="w-full rounded-lg border-gray-300 text-sm">
-                        <option value="caja">💵 Efectivo de caja (sale del turno)</option>
-                        <option value="efectivo_personal">💰 Efectivo personal (no sale del turno)</option>
-                        <option value="credito">📝 A crédito</option>
-                        <option value="transferencia">🏦 Transferencia</option>
-                        <option value="tarjeta">💳 Tarjeta</option>
-                      </select>
-                    </td>
-                    <td class="px-3 py-2 text-right">
-                      <input type="number"
-                             step="0.01"
-                             min="0"
-                             x-model="pago.amount"
-                             :name="`payments[${idx}][amount]`"
-                             placeholder="0.00"
-                             class="w-full rounded-lg border-gray-300 text-right text-sm">
-                    </td>
-                    <td class="px-3 py-2 text-center">
-                      <input type="hidden"
-                             :name="`payments[${idx}][affects_cash]`"
-                             :value="pago.affects_cash ? '1' : '0'">
-                      <span x-show="pago.affects_cash"
-                            class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        ✓ Sí
-                      </span>
-                      <span x-show="!pago.affects_cash"
-                            class="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                        ✗ No
-                      </span>
-                    </td>
-                    <td class="px-3 py-2">
-                      <input type="text"
-                             x-model="pago.notes"
-                             :name="`payments[${idx}][notes]`"
-                             placeholder="Nota opcional..."
-                             class="w-full rounded-lg border-gray-300 text-sm">
-                    </td>
-                    <td class="px-3 py-2 text-center">
-                      <button type="button"
-                              @click="removePayment(idx)"
-                              x-show="payments.length > 1"
-                              class="text-rose-600 hover:text-rose-800 text-sm">
-                        Quitar
-                      </button>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Botón agregar pago -->
-          <div class="mt-4">
-            <button type="button"
-                    @click="addPayment()"
-                    class="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium">
-              + Agregar otro método de pago
-            </button>
-          </div>
-
-          <!-- Mensaje de validación -->
-          <div x-show="!paymentsValid"
-               class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            <strong>⚠️ Atención:</strong> Los pagos deben sumar exactamente el total de la compra antes de guardar.
-          </div>
-        </div>
-      </div>
-
       <div class="flex items-center gap-3">
         <button type="button" @click="add()" class="px-3 py-2 bg-gray-100 rounded-lg">+ Agregar fila</button>
-        <button type="submit"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-lg"
-                :disabled="(type === 'in' && reason === 'purchase' && !paymentsValid)"
-                :class="{ 'opacity-50 cursor-not-allowed': (type === 'in' && reason === 'purchase' && !paymentsValid) }">
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">
           Guardar
         </button>
       </div>

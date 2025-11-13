@@ -101,14 +101,11 @@ class ShiftController extends Controller
         $devolucionesTotal = $this->calculateReturnsTotal($shift);
         $cashClientPayments = $this->calculateCashPayments($shift->id);
         $abonosData = $this->groupPaymentsByMethod($shift->id);
-        $cashMovementsData = $this->calculateCashMovements($shift->id);
 
-        // Calcular efectivo esperado = Fondo + Ventas cash + Abonos + Ingresos efectivo - Egresos efectivo - Devoluciones
+        // Calcular efectivo esperado = Fondo + Ventas cash + Abonos - Devoluciones
         $expected_cash = (float)($shift->opening_float ?? 0)
                        + $cash_total
                        + $cashClientPayments
-                       + $cashMovementsData['ingresos']
-                       - $cashMovementsData['egresos']
                        - $devolucionesTotal;
 
         return response()->json([
@@ -121,10 +118,6 @@ class ShiftController extends Controller
             ],
             'abonos_total'      => round($abonosData['total'], 2),
             'devoluciones'      => round($devolucionesTotal, 2),
-            'cash_movements'    => [
-                'ingresos'      => round($cashMovementsData['ingresos'], 2),
-                'egresos'       => round($cashMovementsData['egresos'], 2),
-            ],
         ]);
     }
 
@@ -152,14 +145,11 @@ class ShiftController extends Controller
         $devolucionesTotal = $this->calculateReturnsTotal($shift);
         $cashClientPayments = $this->calculateCashPayments($shift->id);
         $abonosData = $this->groupPaymentsByMethod($shift->id);
-        $cashMovementsData = $this->calculateCashMovements($shift->id);
 
-        // Efectivo esperado = Fondo inicial + Ventas cash + Abonos + Ingresos efectivo - Egresos efectivo - Devoluciones
+        // Efectivo esperado = Fondo inicial + Ventas cash + Abonos - Devoluciones
         $expected = (float) $shift->opening_float
                   + $salesCashTotal
                   + $cashClientPayments
-                  + $cashMovementsData['ingresos']
-                  - $cashMovementsData['egresos']
                   - $devolucionesTotal;
 
         // Calcular diferencia
@@ -187,10 +177,6 @@ class ShiftController extends Controller
             ],
             'abonos_total'       => round($abonosData['total'], 2),
             'devoluciones'       => round($devolucionesTotal, 2),
-            'cash_movements'     => [
-                'ingresos'       => round($cashMovementsData['ingresos'], 2),
-                'egresos'        => round($cashMovementsData['egresos'], 2),
-            ],
         ]);
     }
 
@@ -249,23 +235,4 @@ class ShiftController extends Controller
         return $grouped;
     }
 
-    /**
-     * Calcular movimientos de efectivo (ingresos y egresos) del turno
-     *
-     * @param int $shiftId
-     * @return array ['ingresos' => float, 'egresos' => float]
-     */
-    private function calculateCashMovements(int $shiftId): array
-    {
-        $movements = CashMovement::where('cash_shift_id', $shiftId)
-            ->selectRaw('type, SUM(amount) as total')
-            ->groupBy('type')
-            ->pluck('total', 'type')
-            ->toArray();
-
-        return [
-            'ingresos' => (float)($movements['ingreso'] ?? 0),
-            'egresos'  => (float)($movements['egreso'] ?? 0),
-        ];
-    }
 }

@@ -57,36 +57,4 @@ class InventoryTransaction extends Model
     {
         return $this->belongsTo(User::class, 'voided_by');
     }
-
-    /**
-     * Pagos asociados a esta compra
-     */
-    public function payments(): HasMany
-    {
-        return $this->hasMany(PurchasePayment::class, 'purchase_id');
-    }
-
-    /**
-     * Total pagado de esta compra
-     */
-    public function getTotalPaidAttribute(): float
-    {
-        return (float) $this->payments->sum('amount');
-    }
-
-    /**
-     * Saldo pendiente de pago
-     */
-    public function getPendingAmountAttribute(): float
-    {
-        return max(0, $this->total_cost - $this->total_paid);
-    }
-
-    /**
-     * ¿Está completamente pagada?
-     */
-    public function getIsFullyPaidAttribute(): bool
-    {
-        return $this->pending_amount <= 0.01; // Tolerancia de 1 centavo
-    }
 }
