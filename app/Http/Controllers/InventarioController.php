@@ -88,7 +88,7 @@ class InventarioController extends Controller
 
     // Totales (sobre el conjunto filtrado completo)
     $all = (clone $base)->get();
-    $costValue   = $all->sum(fn($p) => (int)$p->stock * (float)($p->purchase_price ?? 0));
+    $costValue   = $all->sum(fn($p) => (int)$p->stock * (float)($p->cost ?? 0));
     $retailValue = $all->sum(fn($p) => (int)$p->stock * (float)$p->price);
 
     $totals = [

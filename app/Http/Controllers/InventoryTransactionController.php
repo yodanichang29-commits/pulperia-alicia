@@ -135,13 +135,13 @@ class InventoryTransactionController extends Controller
                     throw new \RuntimeException("El producto {$product->name} no pertenece al proveedor seleccionado.");
                 }
 
-                // Cantidad y costo unitario (fallback a purchase_price)
+                // Cantidad y costo unitario (fallback a cost)
                 $qty  = (int) $row['qty'];
-                $cost = (float) ($row['unit_cost'] ?? ($product->purchase_price ?? 0));
+                $cost = (float) ($row['unit_cost'] ?? ($product->cost ?? 0));
 
                 // Stock antes/después
                 $qty    = (int) $row['qty'];
-    $cost   = (float) ($row['unit_cost'] ?? $product->purchase_price ?? 0);
+    $cost   = (float) ($row['unit_cost'] ?? $product->cost ?? 0);
     $before = (int) $product->stock;
     $after  = $data['type'] === 'in' ? $before + $qty : max($before - $qty, 0);
 

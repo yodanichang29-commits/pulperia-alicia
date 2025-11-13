@@ -145,19 +145,19 @@ $abcChart = array_slice($abcItems, 0, 12);
 // =========================
 //  B) ESTRELLAS (margen% × rotación)
 // =========================
-// margen% por producto: ((price - purchase_price) / price) * 100
+// margen% por producto: ((price - cost) / price) * 100
 $stars = DB::table('sale_items as si')
     ->join('sales as s', 's.id', '=', 'si.sale_id')
     ->join('products as p', 'p.id', '=', 'si.product_id')
     ->whereBetween('s.created_at', [$inicio, $fin])
-    ->groupBy('si.product_id', 'p.name', 'p.price', 'p.purchase_price')
+    ->groupBy('si.product_id', 'p.name', 'p.price', 'p.cost')
     ->selectRaw("
         si.product_id,
         p.name,
         SUM(si.qty) as unidades,
         CASE
-            WHEN p.price > 0 AND p.purchase_price IS NOT NULL
-              THEN ((p.price - p.purchase_price) * 100.0 / p.price)
+            WHEN p.price > 0 AND p.cost IS NOT NULL
+              THEN ((p.price - p.cost) * 100.0 / p.price)
             ELSE 0
         END as margen_pct
     ")
@@ -328,16 +328,16 @@ $kpis = [
 // Solo productos con costo > 0 y precio > 0 (evita 100% "falso")
 $marginProducts = DB::table('products')
     ->where('active', 1)
-    ->where('purchase_price', '>', 0)
+    ->where('cost', '>', 0)
     ->where('price', '>', 0)
     ->select([
         'name',
         'price',
-        'purchase_price',
+        'cost',
         // Abs: ganancia por unidad (float forzado)
-        DB::raw('((price - purchase_price) * 1.0) AS margin_abs'),
+        DB::raw('((price - cost) * 1.0) AS margin_abs'),
         // %: MUY IMPORTANTE en SQLite: multiplicar por 100.0 para forzar float
-        DB::raw('ROUND(((price - purchase_price) * 100.0) / price, 2) AS margin_pct'),
+        DB::raw('ROUND(((price - cost) * 100.0) / price, 2) AS margin_pct'),
     ])
     ->orderByDesc('margin_pct')   // cambia a margin_abs si quieres ordenar por L/ud
     ->limit(8)

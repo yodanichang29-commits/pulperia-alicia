@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
             'name'           => ['required','string','max:150'],
             'barcode'        => ['nullable','string','max:100'],
             'price'          => ['required','numeric','min:0'],
-            'purchase_price' => ['nullable','numeric','min:0'],
+            'cost'           => ['nullable','numeric','min:0'],
             'unit'           => ['nullable','string','max:50'],
             'provider_id'    => ['nullable','integer','exists:providers,id'],
             'stock'          => ['required','integer','min:0'],
@@ -47,7 +47,7 @@ use Illuminate\Support\Facades\Storage;
             'name'           => ['required','string','max:150'],
             'barcode'        => ['nullable','string','max:100'],
             'price'          => ['required','numeric','min:0'],
-            'purchase_price' => ['nullable','numeric','min:0'],
+            'cost'           => ['nullable','numeric','min:0'],
             'unit'           => ['nullable','string','max:50'],
             'provider_id'    => ['nullable','integer','exists:providers,id'],
             'stock'          => ['required','integer','min:0'],
@@ -110,7 +110,7 @@ public function buscar(Request $request)
 {
     $term = $request->get('q');
     $results = \App\Models\Product::where('name', 'like', "%{$term}%")
-        ->select('id', 'name', 'barcode', 'provider_id', 'purchase_price', 'price', 'stock')
+        ->select('id', 'name', 'barcode', 'provider_id', 'cost', 'price', 'stock')
         ->orderBy('name')
         ->take(10)
         ->get();

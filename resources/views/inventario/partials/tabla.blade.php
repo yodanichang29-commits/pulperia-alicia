@@ -27,7 +27,7 @@
 
           // --- Margen ---
           $margin = $p->price > 0
-              ? round((($p->price - $p->purchase_price) / $p->price) * 100, 2)
+              ? round((($p->price - $p->cost) / $p->price) * 100, 2)
               : 0;
 
           // --- Caducidad ---
@@ -133,7 +133,7 @@ if ($low) {
   <td class="px-4 py-3 text-sm text-center text-gray-700 {{ $cellBg }}">{{ $p->min_stock }}</td>
 
           {{-- Precio compra / venta --}}
-         <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->purchase_price, 2) }}</td>
+         <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->cost, 2) }}</td>
   <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->price, 2) }}</td>
   <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">{{ number_format($margin, 2) }}%</td>
 

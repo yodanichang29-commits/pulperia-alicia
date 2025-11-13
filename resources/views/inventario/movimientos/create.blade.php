@@ -123,7 +123,7 @@
          this.items[i].product_id   = prod.id;
          this.items[i].product_name = prod.name;
          this.items[i].resultados   = [];
-         if (this.type === 'in') { this.items[i].unit_cost = prod.purchase_price ?? ''; }
+         if (this.type === 'in') { this.items[i].unit_cost = prod.cost ?? ''; }
        }
      }"
 >

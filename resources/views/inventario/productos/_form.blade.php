@@ -77,10 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
   {{-- 👈 MODIFICADO: Agregamos ID para controlarlo con JavaScript --}}
   <div>
     <label class="block text-sm font-medium text-gray-700">Costo compra</label>
-    <input id="costo-compra" name="purchase_price" type="number" step="0.01" min="0"
-           value="{{ old('purchase_price', $product->purchase_price) }}"
+    <input id="costo-compra" name="cost" type="number" step="0.01" min="0"
+           value="{{ old('cost', $product->cost) }}"
            class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" required>
-    @error('purchase_price')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+    @error('cost')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
   </div>
 
   {{-- 👈 NUEVO: Campo de Margen Comercial % --}}

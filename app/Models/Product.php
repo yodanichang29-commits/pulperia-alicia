@@ -13,9 +13,8 @@ class Product extends Model
 protected static function booted()
 {
     static::saving(function ($product) {
-        if ($product->purchase_price > 0 && ($product->cost == 0 || $product->cost === null)) {
-            $product->cost = $product->purchase_price;
-        }
+        // El costo ya viene en $product->cost, no necesitamos hacer nada aquí
+        // Este método se puede eliminar o dejar vacío
     });
 }
 
@@ -24,7 +23,7 @@ protected static function booted()
 
     // Campos que se pueden guardar directamente
      protected $fillable = [
-        'name', 'barcode', 'price', 'purchase_price', 'unit', 'photo',
+        'name', 'barcode', 'price', 'cost', 'unit', 'photo',
         'expires_at', 'provider_id', 'category', 'stock', 'min_stock', 'active'
     ];
 
@@ -60,12 +59,12 @@ public function getImageUrlAttribute()
     public function getMarginPercentAttribute(): float
     {
         if ($this->price <= 0) return 0;
-        return round((($this->price - $this->purchase_price) / $this->price) * 100, 2);
+        return round((($this->price - $this->cost) / $this->price) * 100, 2);
     }
 
     public function getProfitPerUnitAttribute(): float
     {
-        return round(($this->price - $this->purchase_price), 2);
+        return round(($this->price - $this->cost), 2);
     }
 
 }
