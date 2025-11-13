@@ -350,12 +350,12 @@ Route::get('/debug/low-stock', function () {
         ->orderBy('name')
         ->get();
 
-    // Productos que DEBERÍAN aparecer como bajo stock
+    // Productos que DEBERÍAN aparecer como bajo stock (stock <= min_stock)
     $lowStock = DB::table('products')
         ->where('active', 1)
         ->whereNotNull('min_stock')
         ->where('min_stock', '>', 0)
-        ->whereColumn('stock', '<', 'min_stock')
+        ->whereColumn('stock', '<=', 'min_stock')
         ->select('id','name','stock','min_stock')
         ->orderByRaw('(min_stock - stock) DESC')
         ->get();
@@ -370,7 +370,7 @@ Route::get('/debug/low-stock', function () {
             'active = 1',
             'min_stock IS NOT NULL',
             'min_stock > 0',
-            'stock < min_stock'
+            'stock <= min_stock (INCLUYE IGUALES)'
         ]
     ]);
 })->middleware('auth');

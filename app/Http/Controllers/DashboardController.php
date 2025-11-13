@@ -417,12 +417,12 @@ if ($pmTotal === 0) {
 $today = \Carbon\Carbon::today()->toDateString();
 $in30  = \Carbon\Carbon::today()->addDays(30)->toDateString();
 
-// Bajo stock
+// Bajo stock (stock <= min_stock, para incluir cuando son iguales)
 $lowStock = DB::table('products')
     ->where('active', 1)
     ->whereNotNull('min_stock')
     ->where('min_stock', '>', 0)
-    ->whereColumn('stock', '<', 'min_stock')
+    ->whereColumn('stock', '<=', 'min_stock')
     ->select('id','name','stock','min_stock','expires_at')
     ->orderByRaw('(min_stock - stock) DESC')
     ->get();
