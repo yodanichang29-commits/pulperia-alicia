@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CashMovement;
+use App\Models\CashShift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -220,6 +221,12 @@ class CashMovementController extends Controller
 
         // Agregar usuario que lo creó
         $validated['created_by'] = Auth::id();
+
+        // Si el método de pago es efectivo, vincular al turno abierto actual
+        if ($validated['payment_method'] === 'efectivo') {
+            $currentShift = CashShift::openForUser(Auth::id())->first();
+            $validated['cash_shift_id'] = $currentShift?->id;
+        }
 
         // Crear el movimiento
         CashMovement::create($validated);
