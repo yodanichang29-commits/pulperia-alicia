@@ -81,7 +81,7 @@ class InventoryTransactionController extends Controller
             'payments'              => 'nullable|array|min:1',
             'payments.*.method'     => 'nullable|in:caja,efectivo_personal,credito,transferencia,tarjeta',
             'payments.*.amount'     => 'nullable|numeric|min:0',
-            'payments.*.affects_cash' => 'nullable|boolean',
+            'payments.*.affects_cash' => 'nullable', // Aceptar cualquier valor (string o boolean)
             'payments.*.notes'      => 'nullable|string|max:500',
         ]);
 

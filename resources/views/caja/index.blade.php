@@ -99,8 +99,8 @@
 
     {{-- Modal Cerrar turno --}}
     <template x-teleport="body">
-      <div x-cloak x-show="closeModal" class="fixed inset-0 z-50 grid place-items-center bg-black/40">
-        <div @click.outside="closeModal=false" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+      <div x-cloak x-show="closeModal" class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+        <div @click.outside="closeModal=false" class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
           <h3 class="text-lg font-semibold mb-3">Cerrar turno</h3>
           <div class="rounded-lg border p-3 mb-3">
             <div class="text-sm text-gray-600 mb-1">Resumen por método</div>

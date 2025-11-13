@@ -15,13 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('purchase_id')->constrained('inventory_transactions')->cascadeOnDelete();
             $table->decimal('amount', 12, 2); // Monto del pago
-            $table->enum('payment_method', [
-                'caja',          // Efectivo de caja
-                'externo',       // Dinero de fuera (bolsillo del dueño)
-                'credito',       // Fiado/crédito con proveedor
-                'transferencia', // Transferencia bancaria
-                'tarjeta'        // Tarjeta
-            ]);
+            $table->string('payment_method'); // Usamos string en lugar de enum para SQLite
+            // Valores permitidos: 'caja', 'efectivo_personal', 'credito', 'transferencia', 'tarjeta'
             $table->boolean('affects_cash')->default(false); // ¿Afecta la caja del turno?
             $table->text('notes')->nullable();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
