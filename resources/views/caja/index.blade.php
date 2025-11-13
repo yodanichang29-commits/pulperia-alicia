@@ -146,14 +146,42 @@
               <span>Total abonos</span>
               <span>L <span x-text="Number(summary.abonos_total || 0).toFixed(2)"></span></span>
             </div>
+
+            <!-- ============================================ -->
+            <!-- 💰 MOVIMIENTOS DE EFECTIVO -->
+            <!-- ============================================ -->
+            <template x-if="summary.cash_movements && (Number(summary.cash_movements.ingresos || 0) > 0 || Number(summary.cash_movements.egresos || 0) > 0)">
+              <div class="border-t mt-3 pt-3">
+                <div class="text-sm text-gray-600 mb-2 font-semibold">💵 Movimientos de efectivo</div>
+
+                <!-- Ingresos -->
+                <div x-show="Number(summary.cash_movements.ingresos || 0) > 0"
+                     class="flex justify-between text-sm py-1 text-green-700">
+                  <span>+ Ingresos de efectivo</span>
+                  <span>L +<span x-text="Number(summary.cash_movements.ingresos || 0).toFixed(2)"></span></span>
+                </div>
+
+                <!-- Egresos -->
+                <div x-show="Number(summary.cash_movements.egresos || 0) > 0"
+                     class="flex justify-between text-sm py-1 text-red-700">
+                  <span>- Egresos de efectivo</span>
+                  <span>L -<span x-text="Number(summary.cash_movements.egresos || 0).toFixed(2)"></span></span>
+                </div>
+
+                <div class="text-xs text-gray-500 mt-1 italic">
+                  (Incluye: pagos a proveedores, gastos operativos, retiros, aportes, etc.)
+                </div>
+              </div>
+            </template>
+
          <div class="border-t mt-2 pt-3">
   <div class="flex justify-between text-sm font-semibold">
     <span>Efectivo esperado</span>
     <span class="text-lg" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
   </div>
-  <!-- ✅ NUEVA NOTA EXPLICATIVA -->
+  <!-- ✅ NOTA EXPLICATIVA ACTUALIZADA -->
   <div class="text-xs text-gray-500 mt-1">
-    (Fondo inicial + Ventas efectivo + Abonos - Devoluciones)
+    (Fondo + Ventas efectivo + Abonos + Ingresos - Egresos - Devoluciones)
   </div>
 </div>
           </div>
