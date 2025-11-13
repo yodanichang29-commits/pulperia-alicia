@@ -73,12 +73,14 @@ class FinanceController extends Controller
         // 4) ENTRADAS - OTROS INGRESOS
         // ========================================
         // IMPORTANTE: Excluir solo 'ingreso_fondo_inicial' porque solo afecta el flujo de caja, no el balance
-        $otrosIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $otrosIngresos = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'ingreso')
             ->where('category', '!=', 'ingreso_fondo_inicial')
             ->sum('amount');
 
-        $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $otrosIngresosPorCategoria = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'ingreso')
             ->where('category', '!=', 'ingreso_fondo_inicial')
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
@@ -87,7 +89,8 @@ class FinanceController extends Controller
             ->get();
 
         // DEBUG: Contar registros de ingresos
-        $countIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $countIngresos = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'ingreso')
             ->count();
 
@@ -114,11 +117,13 @@ class FinanceController extends Controller
         // 6) SALIDAS - GASTOS OPERATIVOS
         // ========================================
         // TODOS los egresos se cuentan como gastos operativos (incluyendo pago_proveedor)
-        $gastosOperativos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $gastosOperativos = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'egreso')
             ->sum('amount');
 
-        $gastosOperativosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $gastosOperativosPorCategoria = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'egreso')
             ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
             ->groupBy('cat')
@@ -126,12 +131,14 @@ class FinanceController extends Controller
             ->get();
 
         // DEBUG: Contar registros de egresos
-        $countEgresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $countEgresos = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'egreso')
             ->count();
 
         // DEBUG: Total de cash_movements en el rango
-        $totalCashMovements = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $totalCashMovements = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->count();
 
         // Top 5 gastos más grandes
@@ -199,7 +206,8 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
         $prevAbonos = ClientPayment::whereBetween('created_at', [$prevStart, $prevEnd])
             ->sum('amount');
 
-        $prevOtrosIngresos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
+        $prevOtrosIngresos = CashMovement::whereDate('date', '>=', $prevStart->toDateString())
+            ->whereDate('date', '<=', $prevEnd->toDateString())
             ->where('type', 'ingreso')
             ->where('category', '!=', 'ingreso_fondo_inicial')
             ->sum('amount');
@@ -214,7 +222,8 @@ $capitalTotal = $balance + $valorInventario + $porCobrar;
             ->where('type', 'out')->whereIn('reason', ['waste', 'damaged', 'expired'])
             ->tap($noAnulados)->sum('total_cost');
 
-        $prevGastos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
+        $prevGastos = CashMovement::whereDate('date', '>=', $prevStart->toDateString())
+            ->whereDate('date', '<=', $prevEnd->toDateString())
             ->where('type', 'egreso')
             ->sum('amount');
 
@@ -329,9 +338,10 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             ->keyBy('fecha');
 
         // Gastos operativos por día (incluir todos los egresos)
-        $gastosPorDia = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+        $gastosPorDia = CashMovement::whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
             ->where('type', 'egreso')
-            ->selectRaw('date as fecha, SUM(amount) as total')
+            ->selectRaw('DATE(date) as fecha, SUM(amount) as total')
             ->groupBy('fecha')
             ->orderBy('fecha')
             ->get()
