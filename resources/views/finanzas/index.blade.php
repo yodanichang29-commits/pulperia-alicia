@@ -457,48 +457,73 @@
         <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-xl p-8 text-white">
             <h3 class="text-2xl font-bold mb-6">💰 BALANCE GENERAL</h3>
             <div class="space-y-4">
+                {{-- ENTRADAS --}}
                 <div class="flex justify-between items-center text-lg">
-                    <span class="text-blue-100">Total Entradas:</span>
+                    <span class="text-blue-100">💵 Total Entradas:</span>
                     <span class="font-bold">L {{ number_format($totalEntradas, 2) }}</span>
                 </div>
+
                 <div class="border-t-2 border-white/20 my-2"></div>
+
+                {{-- SALIDAS --}}
                 <div class="flex justify-between items-center text-lg">
-                    <span class="text-blue-100">Total Salidas:</span>
+                    <span class="text-blue-100">💸 Total Salidas:</span>
                     <span class="font-bold">L {{ number_format($totalSalidas, 2) }}</span>
                 </div>
-                <div class="ml-6 space-y-2 text-sm">
-                    <div class="flex justify-between items-center text-blue-50">
-                        <span class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-orange-300 rounded-full"></span>
-                            Compras de mercancía:
-                        </span>
-                        <span>L {{ number_format($compras, 2) }}</span>
+
+                {{-- DESGLOSE DE SALIDAS --}}
+                <div class="ml-6 space-y-3 text-sm bg-white/10 rounded-lg p-4">
+                    <p class="text-xs text-blue-100 font-semibold mb-2">📋 Desglose de Salidas:</p>
+
+                    {{-- INVENTARIO --}}
+                    <div class="border-b border-white/10 pb-2">
+                        <p class="text-xs text-blue-100 mb-1.5">🏬 INVENTARIO</p>
+                        <div class="flex justify-between items-center text-blue-50 mb-1">
+                            <span class="flex items-center gap-2 pl-2">
+                                <span class="w-1.5 h-1.5 bg-orange-300 rounded-full"></span>
+                                Compras de mercancía
+                            </span>
+                            <span class="font-semibold">L {{ number_format($compras, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-blue-50">
+                            <span class="flex items-center gap-2 pl-2">
+                                <span class="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                                Mermas/Productos dañados
+                            </span>
+                            <span class="font-semibold">L {{ number_format($mermas, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-blue-50 mt-1.5 pt-1.5 border-t border-white/5">
+                            <span class="text-xs pl-2">Subtotal Inventario:</span>
+                            <span class="font-bold">L {{ number_format($compras + $mermas, 2) }}</span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center text-blue-50">
-                        <span class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-red-300 rounded-full"></span>
-                            Mermas/Productos dañados:
-                        </span>
-                        <span>L {{ number_format($mermas, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between items-center text-blue-50">
-                        <span class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-red-400 rounded-full"></span>
-                            Gastos operativos:
-                        </span>
-                        <span>L {{ number_format($gastosOperativos, 2) }}</span>
+
+                    {{-- GASTOS OPERATIVOS --}}
+                    <div class="pt-1">
+                        <p class="text-xs text-blue-100 mb-1.5">💼 GASTOS OPERATIVOS (Todos los egresos)</p>
+                        <div class="flex justify-between items-center text-blue-50">
+                            <span class="flex items-center gap-2 pl-2">
+                                <span class="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                                Gastos operativos totales
+                            </span>
+                            <span class="font-bold">L {{ number_format($gastosOperativos, 2) }}</span>
+                        </div>
                     </div>
                 </div>
+
                 <div class="border-t-2 border-white/30 my-4"></div>
+
+                {{-- BALANCE FINAL --}}
                 <div class="flex justify-between items-center">
-                    <span class="text-2xl font-bold">BALANCE DE CAJA:</span>
+                    <span class="text-2xl font-bold">💎 BALANCE DE CAJA:</span>
                     <span class="text-5xl font-black">
                         L {{ number_format($balance, 2) }}
                         @if($balance >= 0) ✅ @else ❌ @endif
                     </span>
                 </div>
                 <p class="text-blue-100 text-sm mt-4">
-                    Este es el dinero real que tienes en caja después de todas las transacciones del período.
+                    💡 <strong>Inventario:</strong> Compras de mercancía del sistema de inventario.
+                    <strong>Gastos Operativos:</strong> Todos los egresos registrados (luz, agua, salarios, pagos a proveedores, etc).
                 </p>
             </div>
         </div>
