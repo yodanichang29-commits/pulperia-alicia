@@ -77,11 +77,29 @@ class InventoryTransactionController extends Controller
             'items.*.qty'           => 'required|integer|min:1',
             'items.*.unit_cost'     => 'nullable|numeric|min:0',
 
+            // Pagos (opcionales)
+            'payments'                  => 'nullable|array',
+            'payments.*.amount'         => 'required|numeric|min:0',
+            'payments.*.payment_method' => 'required|in:caja,efectivo_personal,credito,transferencia,tarjeta',
+            'payments.*.affects_cash'   => 'required|boolean',
+            'payments.*.notes'          => 'nullable|string|max:500',
+
         ]);
 
         // 2) Reglas extra
         if ($data['type'] === 'in' && $data['reason'] === 'purchase' && empty($data['provider_id'])) {
             return back()->withErrors(['provider_id' => 'Debes seleccionar un proveedor para una compra.'])->withInput();
+        }
+
+        // Validar turno abierto si hay pagos con "caja"
+        if (!empty($data['payments'])) {
+            $hasCajaPagos = collect($data['payments'])->contains(fn($p) => $p['payment_method'] === 'caja' && $p['affects_cash']);
+            if ($hasCajaPagos) {
+                $currentShift = CashShift::where('user_id', Auth::id())->whereNull('closed_at')->first();
+                if (!$currentShift) {
+                    return back()->withErrors(['payments' => 'No hay un turno abierto. No puedes usar "Efectivo de caja" sin un turno activo.'])->withInput();
+                }
+            }
         }
 
         // 3) Ejecutar todo en transacción
@@ -156,6 +174,44 @@ class InventoryTransactionController extends Controller
 
             // Total en encabezado
             $tx->update(['total_cost' => $total]);
+
+            // Procesar pagos (si existen)
+            if (!empty($data['payments'])) {
+                $currentShift = CashShift::where('user_id', Auth::id())->whereNull('closed_at')->first();
+
+                foreach ($data['payments'] as $paymentData) {
+                    // Crear registro de pago
+                    $payment = PurchasePayment::create([
+                        'purchase_id'    => $tx->id,
+                        'amount'         => $paymentData['amount'],
+                        'payment_method' => $paymentData['payment_method'],
+                        'affects_cash'   => $paymentData['affects_cash'],
+                        'notes'          => $paymentData['notes'] ?? null,
+                        'user_id'        => Auth::id(),
+                    ]);
+
+                    // Si afecta caja, crear movimiento de caja automáticamente
+                    if ($paymentData['affects_cash'] && $currentShift) {
+                        CashMovement::create([
+                            'cash_shift_id'       => $currentShift->id,
+                            'purchase_payment_id' => $payment->id,
+                            'date'                => $data['moved_at'] ?? now(),
+                            'type'                => 'egreso',
+                            'category'            => 'Pago a proveedor',
+                            'description'         => sprintf(
+                                'Pago de compra #%d - %s (Factura: %s)',
+                                $tx->id,
+                                $supplierName ?? 'Sin proveedor',
+                                $data['reference'] ?? 'Sin referencia'
+                            ),
+                            'amount'              => $paymentData['amount'],
+                            'payment_method'      => 'efectivo',
+                            'notes'               => $paymentData['notes'] ?? null,
+                            'created_by'          => Auth::id(),
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
 

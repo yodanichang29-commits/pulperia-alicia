@@ -30,9 +30,42 @@
        reference: '',
        notes: '',
        items: [{ product_id:'', product_name:'', qty:1, unit_cost:'', resultados:[] }],
+       payments: [],
+       hasTurnoAbierto: false,
 
        add(){ this.items.push({ product_id:'', product_name:'', qty:1, unit_cost:'', resultados:[] }); },
        remove(i){ this.items.splice(i,1); },
+
+       // Pagos
+       addPayment(){ this.payments.push({ amount:'', payment_method:'caja', affects_cash:true, notes:'' }); },
+       removePayment(i){ this.payments.splice(i,1); },
+
+       // Calcular total de la compra
+       get totalCompra(){
+         return this.items.reduce((sum, item) => {
+           const qty = parseFloat(item.qty) || 0;
+           const cost = parseFloat(item.unit_cost) || 0;
+           return sum + (qty * cost);
+         }, 0);
+       },
+
+       // Calcular total pagado
+       get totalPagado(){
+         return this.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+       },
+
+       // Saldo pendiente
+       get saldoPendiente(){
+         return this.totalCompra - this.totalPagado;
+       },
+
+       // Verificar turno al cargar
+       init(){
+         fetch('/caja/shift/current')
+           .then(r => r.json())
+           .then(data => this.hasTurnoAbierto = data.shift !== null)
+           .catch(() => this.hasTurnoAbierto = false);
+       },
 
        // === Autocompletar proveedor ===
        buscarProveedor(term){
@@ -200,7 +233,143 @@
 
       <div class="flex items-center gap-3">
         <button type="button" @click="add()" class="px-3 py-2 bg-gray-100 rounded-lg">+ Agregar fila</button>
-        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">
+      </div>
+
+      {{-- SECCIÓN DE PAGOS --}}
+      <div x-show="type === 'in' && reason === 'purchase'" class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-lg p-6 border border-emerald-200">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Forma de Pago (Opcional)
+          </h3>
+          <div class="text-right">
+            <div class="text-sm text-gray-600">Total compra:</div>
+            <div class="text-2xl font-bold text-gray-900">L <span x-text="totalCompra.toFixed(2)"></span></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-4 mb-4 space-y-3">
+          <template x-for="(pago, idx) in payments" :key="idx">
+            <div class="flex gap-3 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
+              {{-- Método de pago --}}
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Método</label>
+                <select x-model="pago.payment_method"
+                        @change="pago.affects_cash = ($event.target.value === 'caja')"
+                        :name="`payments[${idx}][payment_method]`"
+                        class="w-full rounded-lg border-gray-300 text-sm">
+                  <option value="caja" :disabled="!hasTurnoAbierto">Efectivo de caja 💵</option>
+                  <option value="efectivo_personal">Efectivo personal 💰</option>
+                  <option value="credito">A crédito 📋</option>
+                  <option value="transferencia">Transferencia 🏦</option>
+                  <option value="tarjeta">Tarjeta 💳</option>
+                </select>
+                <div x-show="pago.payment_method === 'caja' && !hasTurnoAbierto" class="text-xs text-red-600 mt-1">
+                  ⚠️ Sin turno abierto
+                </div>
+              </div>
+
+              {{-- Monto --}}
+              <div class="w-40">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Monto (L)</label>
+                <input type="number"
+                       step="0.01"
+                       min="0"
+                       x-model="pago.amount"
+                       :name="`payments[${idx}][amount]`"
+                       class="w-full rounded-lg border-gray-300 text-sm text-right"
+                       placeholder="0.00">
+              </div>
+
+              {{-- Afecta caja --}}
+              <div class="w-32 pt-6">
+                <label class="flex items-center text-sm">
+                  <input type="checkbox"
+                         x-model="pago.affects_cash"
+                         :name="`payments[${idx}][affects_cash]`"
+                         value="1"
+                         class="rounded border-gray-300 text-indigo-600 mr-2">
+                  <span class="text-xs text-gray-700">Afecta caja</span>
+                </label>
+              </div>
+
+              {{-- Notas --}}
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Notas</label>
+                <input type="text"
+                       x-model="pago.notes"
+                       :name="`payments[${idx}][notes]`"
+                       class="w-full rounded-lg border-gray-300 text-sm"
+                       placeholder="Opcional">
+              </div>
+
+              {{-- Botón eliminar --}}
+              <div class="pt-6">
+                <button type="button"
+                        @click="removePayment(idx)"
+                        class="text-red-600 hover:text-red-800 text-sm font-medium">
+                  Quitar
+                </button>
+              </div>
+
+              {{-- Hidden input para affects_cash cuando no está marcado --}}
+              <input type="hidden" :name="`payments[${idx}][affects_cash]`" :value="pago.affects_cash ? 1 : 0">
+            </div>
+          </template>
+
+          {{-- Sin pagos --}}
+          <div x-show="payments.length === 0" class="text-center py-8 text-gray-500">
+            <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm mb-2">No hay pagos registrados</p>
+            <p class="text-xs">La compra quedará pendiente de pago (a crédito)</p>
+          </div>
+        </div>
+
+        {{-- Botón agregar pago --}}
+        <div class="flex items-center justify-between">
+          <button type="button"
+                  @click="addPayment()"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Agregar pago
+          </button>
+
+          {{-- Resumen --}}
+          <div class="text-right">
+            <div class="flex items-center gap-4 text-sm">
+              <div>
+                <span class="text-gray-600">Total pagado:</span>
+                <span class="font-semibold text-gray-900">L <span x-text="totalPagado.toFixed(2)"></span></span>
+              </div>
+              <div>
+                <span class="text-gray-600">Saldo:</span>
+                <span class="font-semibold"
+                      :class="saldoPendiente > 0 ? 'text-amber-600' : (saldoPendiente < 0 ? 'text-red-600' : 'text-emerald-600')">
+                  L <span x-text="saldoPendiente.toFixed(2)"></span>
+                </span>
+              </div>
+            </div>
+            <div x-show="saldoPendiente < 0" class="text-xs text-red-600 mt-1">
+              ⚠️ El total pagado excede el total de la compra
+            </div>
+            <div x-show="saldoPendiente > 0" class="text-xs text-amber-600 mt-1">
+              ℹ️ Pago parcial - Saldo pendiente
+            </div>
+            <div x-show="saldoPendiente === 0 && payments.length > 0" class="text-xs text-emerald-600 mt-1">
+              ✓ Compra pagada completamente
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
           Guardar
         </button>
       </div>

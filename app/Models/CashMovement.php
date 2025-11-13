@@ -20,6 +20,7 @@ class CashMovement extends Model
      */
     protected $fillable = [
         'cash_shift_id',
+        'purchase_payment_id',
         'date',
         'type',
         'category',
@@ -57,6 +58,14 @@ class CashMovement extends Model
     }
 
     /**
+     * Relación con el pago de compra (si aplica).
+     */
+    public function purchasePayment()
+    {
+        return $this->belongsTo(PurchasePayment::class, 'purchase_payment_id');
+    }
+
+    /**
      * Obtener la categoría final (predefinida o personalizada).
      */
     public function getFinalCategoryAttribute()
@@ -78,6 +87,14 @@ class CashMovement extends Model
     public function isEgreso()
     {
         return $this->type === 'egreso';
+    }
+
+    /**
+     * Verificar si es un pago de compra.
+     */
+    public function isPurchasePayment()
+    {
+        return $this->purchase_payment_id !== null;
     }
 
     /**

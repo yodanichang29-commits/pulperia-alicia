@@ -147,13 +147,48 @@
               <span>L <span x-text="Number(summary.abonos_total || 0).toFixed(2)"></span></span>
             </div>
 
+            {{-- SALIDAS DE CAJA --}}
+            <div
+              x-show="(Number(summary.purchase_payments ?? 0) > 0) || (Number(summary.otros_egresos ?? 0) > 0)"
+              class="mt-3 pt-3 border-t"
+            >
+              <div class="text-xs font-semibold text-gray-600 uppercase mb-2">💸 Salidas de caja</div>
+
+              <div
+                x-show="Number(summary.purchase_payments ?? 0) > 0"
+                class="flex justify-between text-sm py-1 text-red-600"
+              >
+                <span>🛒 Pagos de compras (efectivo de caja)</span>
+                <span class="font-semibold">L -<span x-text="Number(summary.purchase_payments ?? 0).toFixed(2)"></span></span>
+              </div>
+
+              <div
+                x-show="Number(summary.otros_egresos ?? 0) > 0"
+                class="flex justify-between text-sm py-1 text-red-600"
+              >
+                <span>💰 Gastos operativos</span>
+                <span class="font-semibold">L -<span x-text="Number(summary.otros_egresos ?? 0).toFixed(2)"></span></span>
+              </div>
+            </div>
+
+            {{-- ENTRADAS DE CAJA ADICIONALES --}}
+            <div
+              x-show="Number(summary.otros_ingresos ?? 0) > 0"
+              class="mt-2 pt-2 border-t"
+            >
+              <div class="flex justify-between text-sm py-1 text-emerald-600">
+                <span>💵 Otros ingresos</span>
+                <span class="font-semibold">L +<span x-text="Number(summary.otros_ingresos ?? 0).toFixed(2)"></span></span>
+              </div>
+            </div>
+
          <div class="border-t mt-2 pt-3">
   <div class="flex justify-between text-sm font-semibold">
     <span>Efectivo esperado</span>
     <span class="text-lg" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
   </div>
   <div class="text-xs text-gray-500 mt-1">
-    (Fondo + Ventas efectivo + Abonos - Devoluciones)
+    (Fondo + Entradas - Salidas)
   </div>
 </div>
           </div>

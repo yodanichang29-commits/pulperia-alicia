@@ -102,11 +102,30 @@ class ShiftController extends Controller
         $cashClientPayments = $this->calculateCashPayments($shift->id);
         $abonosData = $this->groupPaymentsByMethod($shift->id);
 
-        // Calcular efectivo esperado = Fondo + Ventas cash + Abonos - Devoluciones
+        // Calcular pagos de compras con efectivo de caja
+        $purchasePaymentsTotal = (float) \App\Models\CashMovement::where('cash_shift_id', $shift->id)
+            ->where('type', 'egreso')
+            ->whereNotNull('purchase_payment_id')
+            ->sum('amount');
+
+        // Calcular otros movimientos de caja
+        $otrosEgresos = (float) \App\Models\CashMovement::where('cash_shift_id', $shift->id)
+            ->where('type', 'egreso')
+            ->whereNull('purchase_payment_id')
+            ->sum('amount');
+
+        $otrosIngresos = (float) \App\Models\CashMovement::where('cash_shift_id', $shift->id)
+            ->where('type', 'ingreso')
+            ->sum('amount');
+
+        // Calcular efectivo esperado = Fondo + Entradas - Salidas
         $expected_cash = (float)($shift->opening_float ?? 0)
                        + $cash_total
                        + $cashClientPayments
-                       - $devolucionesTotal;
+                       + $otrosIngresos
+                       - $devolucionesTotal
+                       - $purchasePaymentsTotal
+                       - $otrosEgresos;
 
         return response()->json([
             'by_payment'        => $by_payment,
@@ -116,8 +135,11 @@ class ShiftController extends Controller
                 'tarjeta'       => $abonosData['tarjeta'],
                 'transferencia' => $abonosData['transferencia'],
             ],
-            'abonos_total'      => round($abonosData['total'], 2),
-            'devoluciones'      => round($devolucionesTotal, 2),
+            'abonos_total'           => round($abonosData['total'], 2),
+            'devoluciones'           => round($devolucionesTotal, 2),
+            'purchase_payments'      => round($purchasePaymentsTotal, 2),
+            'otros_egresos'          => round($otrosEgresos, 2),
+            'otros_ingresos'         => round($otrosIngresos, 2),
         ]);
     }
 
@@ -146,11 +168,30 @@ class ShiftController extends Controller
         $cashClientPayments = $this->calculateCashPayments($shift->id);
         $abonosData = $this->groupPaymentsByMethod($shift->id);
 
-        // Efectivo esperado = Fondo inicial + Ventas cash + Abonos - Devoluciones
+        // Calcular pagos de compras con efectivo de caja
+        $purchasePaymentsTotal = (float) \App\Models\CashMovement::where('cash_shift_id', $shift->id)
+            ->where('type', 'egreso')
+            ->whereNotNull('purchase_payment_id')
+            ->sum('amount');
+
+        // Calcular otros movimientos de caja (gastos operativos)
+        $otrosEgresos = (float) \App\Models\CashMovement::where('cash_shift_id', $shift->id)
+            ->where('type', 'egreso')
+            ->whereNull('purchase_payment_id')
+            ->sum('amount');
+
+        $otrosIngresos = (float) \App\Models\CashMovement::where('cash_shift_id', $shift->id)
+            ->where('type', 'ingreso')
+            ->sum('amount');
+
+        // Efectivo esperado = Fondo inicial + Entradas - Salidas
         $expected = (float) $shift->opening_float
-                  + $salesCashTotal
-                  + $cashClientPayments
-                  - $devolucionesTotal;
+                  + $salesCashTotal           // Ventas en efectivo
+                  + $cashClientPayments       // Abonos de clientes
+                  + $otrosIngresos            // Otros ingresos (cash_movements)
+                  - $devolucionesTotal        // Devoluciones
+                  - $purchasePaymentsTotal    // Pagos de compras con efectivo de caja
+                  - $otrosEgresos;            // Otros gastos operativos
 
         // Calcular diferencia
         $closing = (float) $request->float('closing_cash_count');
@@ -166,17 +207,20 @@ class ShiftController extends Controller
         ]);
 
         return response()->json([
-            'message'            => 'Turno cerrado',
-            'expected_cash'      => $expected,
-            'closing_cash_count' => $closing,
-            'difference'         => $diff,
-            'abonos_by_method'   => [
+            'message'                => 'Turno cerrado',
+            'expected_cash'          => $expected,
+            'closing_cash_count'     => $closing,
+            'difference'             => $diff,
+            'abonos_by_method'       => [
                 'efectivo'      => $abonosData['efectivo'],
                 'tarjeta'       => $abonosData['tarjeta'],
                 'transferencia' => $abonosData['transferencia'],
             ],
-            'abonos_total'       => round($abonosData['total'], 2),
-            'devoluciones'       => round($devolucionesTotal, 2),
+            'abonos_total'           => round($abonosData['total'], 2),
+            'devoluciones'           => round($devolucionesTotal, 2),
+            'purchase_payments'      => round($purchasePaymentsTotal, 2),
+            'otros_egresos'          => round($otrosEgresos, 2),
+            'otros_ingresos'         => round($otrosIngresos, 2),
         ]);
     }
 

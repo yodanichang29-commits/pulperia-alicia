@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PurchasePayment extends Model
 {
@@ -38,6 +39,14 @@ class PurchasePayment extends Model
     }
 
     /**
+     * Relación con el movimiento de caja (si afecta caja)
+     */
+    public function cashMovement(): HasOne
+    {
+        return $this->hasOne(CashMovement::class, 'purchase_payment_id');
+    }
+
+    /**
      * Etiquetas amigables para métodos de pago
      */
     public function getPaymentMethodLabelAttribute(): string
@@ -50,5 +59,29 @@ class PurchasePayment extends Model
             'tarjeta' => 'Tarjeta',
             default => $this->payment_method,
         };
+    }
+
+    /**
+     * Verificar si afecta la caja del turno
+     */
+    public function affectsCash(): bool
+    {
+        return $this->affects_cash === true;
+    }
+
+    /**
+     * Verificar si es un pago en efectivo de caja
+     */
+    public function isCashPayment(): bool
+    {
+        return $this->payment_method === 'caja' && $this->affects_cash;
+    }
+
+    /**
+     * Verificar si es un pago a crédito
+     */
+    public function isCreditPayment(): bool
+    {
+        return $this->payment_method === 'credito';
     }
 }

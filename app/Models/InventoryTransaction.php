@@ -42,6 +42,12 @@ class InventoryTransaction extends Model
         return $this->hasMany(InventoryMovement::class, 'transaction_id');
     }
 
+    // Pagos de la compra
+    public function payments(): HasMany
+    {
+        return $this->hasMany(PurchasePayment::class, 'purchase_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
