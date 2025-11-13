@@ -337,6 +337,46 @@ Route::post('/verify-sensitive-access', function (Request $request) {
 
 /*
 |--------------------------------------------------------------------------
+| RUTA DE DEBUG TEMPORAL - BAJO STOCK
+|--------------------------------------------------------------------------
+*/
+Route::get('/debug/low-stock', function () {
+    $today = \Carbon\Carbon::today()->toDateString();
+
+    // Todos los productos activos con sus valores
+    $allProducts = DB::table('products')
+        ->where('active', 1)
+        ->select('id','name','stock','min_stock','active')
+        ->orderBy('name')
+        ->get();
+
+    // Productos que DEBERÍAN aparecer como bajo stock
+    $lowStock = DB::table('products')
+        ->where('active', 1)
+        ->whereNotNull('min_stock')
+        ->where('min_stock', '>', 0)
+        ->whereColumn('stock', '<', 'min_stock')
+        ->select('id','name','stock','min_stock')
+        ->orderByRaw('(min_stock - stock) DESC')
+        ->get();
+
+    return response()->json([
+        'message' => 'Debug de productos en bajo stock',
+        'all_active_products_count' => $allProducts->count(),
+        'all_active_products' => $allProducts,
+        'low_stock_count' => $lowStock->count(),
+        'low_stock_products' => $lowStock,
+        'query_conditions' => [
+            'active = 1',
+            'min_stock IS NOT NULL',
+            'min_stock > 0',
+            'stock < min_stock'
+        ]
+    ]);
+})->middleware('auth');
+
+/*
+|--------------------------------------------------------------------------
 | AUTH
 |--------------------------------------------------------------------------
 */
