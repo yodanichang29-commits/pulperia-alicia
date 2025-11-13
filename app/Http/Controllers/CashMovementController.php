@@ -191,6 +191,7 @@ class CashMovementController extends Controller
             'description' => 'required|string|max:500',
             'amount' => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:efectivo,transferencia,tarjeta,otro',
+            'source' => 'required|in:caja,externo',
             'receipt_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB máximo
             'notes' => 'nullable|string|max:1000',
         ], [
@@ -201,6 +202,7 @@ class CashMovementController extends Controller
             'amount.required' => 'El monto es obligatorio.',
             'amount.min' => 'El monto debe ser mayor a 0.',
             'payment_method.required' => 'El método de pago es obligatorio.',
+            'source.required' => 'Debes seleccionar el origen del dinero.',
             'receipt_file.mimes' => 'El archivo debe ser PDF, JPG, JPEG o PNG.',
             'receipt_file.max' => 'El archivo no debe superar los 5MB.',
         ]);
@@ -223,8 +225,8 @@ class CashMovementController extends Controller
         // Agregar usuario que lo creó
         $validated['created_by'] = Auth::id();
 
-        // Si el pago es en EFECTIVO, vincularlo al turno de caja activo
-        if ($validated['payment_method'] === 'efectivo') {
+        // Vincular al turno de caja solo si: source='caja' Y payment_method='efectivo'
+        if ($validated['source'] === 'caja' && $validated['payment_method'] === 'efectivo') {
             $activeShift = CashShift::where('user_id', Auth::id())
                                     ->whereNull('closed_at')
                                     ->first();
@@ -238,11 +240,11 @@ class CashMovementController extends Controller
                     $activeShift->save();
                 }
             } else {
-                // Si no hay turno activo y es efectivo, mostrar error
+                // Si no hay turno activo, mostrar error
                 return redirect()
                     ->back()
                     ->withInput()
-                    ->withErrors(['payment_method' => 'No tienes un turno de caja abierto. Abre un turno o selecciona otro método de pago.']);
+                    ->withErrors(['source' => 'No tienes un turno de caja abierto. Para usar dinero de caja, abre un turno primero.']);
             }
         }
 
@@ -325,6 +327,7 @@ class CashMovementController extends Controller
             'description' => 'required|string|max:500',
             'amount' => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:efectivo,transferencia,tarjeta,otro',
+            'source' => 'required|in:caja,externo',
             'receipt_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'notes' => 'nullable|string|max:1000',
         ]);

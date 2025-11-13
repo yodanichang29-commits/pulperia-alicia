@@ -180,6 +180,29 @@
                             @enderror
                         </div>
 
+                        {{-- ORIGEN DEL DINERO --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">🏪 Origen del dinero *</label>
+                            <select name="source"
+                                    class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                                    required>
+                                <option value="">-- Seleccionar origen --</option>
+                                <option value="caja" {{ old('source', 'caja') === 'caja' ? 'selected' : '' }}>
+                                    🏪 Dinero de la caja/negocio
+                                </option>
+                                <option value="externo" {{ old('source') === 'externo' ? 'selected' : '' }}>
+                                    👤 Dinero externo/personal
+                                </option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <strong>Caja:</strong> Dinero del negocio (afecta el turno si es efectivo).
+                                <strong>Externo:</strong> Dinero personal o de otra fuente.
+                            </p>
+                            @error('source')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         {{-- COMPROBANTE (opcional) --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📎 Comprobante (opcional)</label>
