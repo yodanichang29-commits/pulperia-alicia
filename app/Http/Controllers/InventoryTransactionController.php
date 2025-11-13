@@ -207,7 +207,8 @@ class InventoryTransactionController extends Controller
                     $amount = (float) ($payment['amount'] ?? 0);
                     if ($amount <= 0) continue; // Saltar pagos en cero
 
-                    $affectsCash = (bool) ($payment['affects_cash'] ?? false);
+                    // Convertir affects_cash correctamente (puede venir como string "1"/"0" o boolean)
+                    $affectsCash = filter_var($payment['affects_cash'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
                     // Crear el registro de pago
                     $purchasePayment = PurchasePayment::create([
