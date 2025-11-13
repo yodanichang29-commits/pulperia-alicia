@@ -373,11 +373,6 @@
           Guardar
         </button>
       </div>
-
-      {{-- Hidden inputs para enviar header vía POST --}}
-      <input type="hidden" name="supplier"  :value="supplier">
-      <input type="hidden" name="reference" :value="reference">
-      <input type="hidden" name="notes"     :value="notes">
     </form>
   </div>
 </x-app-layout>
