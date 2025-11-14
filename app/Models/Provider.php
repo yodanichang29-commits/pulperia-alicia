@@ -14,8 +14,11 @@ class Provider extends Model
     ];
 
     // Relación: un proveedor tiene muchos productos
-    public function products()
-    {
-        return $this->hasMany(Product::class);
-    }
+  public function products()
+{
+    return $this->belongsToMany(\App\Models\Product::class, 'product_supplier')
+        ->withPivot(['purchase_price', 'preferred'])
+        ->withTimestamps();
+}
+
 }

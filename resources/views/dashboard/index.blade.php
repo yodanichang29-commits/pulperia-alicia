@@ -83,7 +83,40 @@
     </div>
   </div>
 
-  {{-- CALENDARIO DE NOTAS --}}
+  
+  {{-- LISTAS DE PRODUCTOS CON PROBLEMAS --}}
+  @php $listas = [
+    ['t' => '🔻 Productos con poco stock', 'data' => $lowStock, 'bg' => 'from-red-50 to-red-100', 'border' => 'border-red-300'],
+    ['t' => '⚫ Productos vencidos', 'data' => $expired, 'bg' => 'from-gray-100 to-gray-200', 'border' => 'border-gray-400'],
+    ['t' => '⏳ Por vencer pronto (30 días)', 'data' => $expiring, 'bg' => 'from-amber-50 to-amber-100', 'border' => 'border-amber-300'],
+  ]; @endphp
+
+  @foreach ($listas as $L)
+    <div class="rounded-3xl bg-gradient-to-br {{ $L['bg'] }} shadow-xl border-4 {{ $L['border'] }} overflow-hidden">
+      <div class="px-6 py-4 border-b-2 {{ $L['border'] }} font-bold text-xl text-gray-800">{{ $L['t'] }}</div>
+      <div class="max-h-80 overflow-auto divide-y">
+        @forelse ($L['data'] as $it)
+          <div class="px-6 py-4">
+            <div class="font-bold text-lg text-gray-800">{{ $it->name }}</div>
+            <div class="text-gray-600 text-base mt-1">
+              @isset($it->stock) 📦 Quedan: {{ $it->stock }} @endisset
+              @isset($it->min_stock) · Mínimo: {{ $it->min_stock }} @endisset
+              @isset($it->expires_at) · ⏰ Vence: {{ $it->expires_at }} @endisset
+            </div>
+          </div>
+        @empty
+          <div class="px-6 py-4 text-base text-gray-500">✅ ¡Todo bien! No hay problemas aquí</div>
+        @endforelse
+      </div>
+    </div>
+  @endforeach
+
+
+
+
+
+
+{{-- CALENDARIO DE NOTAS --}}
   <div class="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl shadow-2xl p-6 border-4 border-indigo-300">
     <div class="flex items-center justify-between mb-6">
       <h3 class="font-bold text-2xl text-gray-800">📅 Calendario y Notas</h3>
@@ -153,32 +186,10 @@
     </div>
   </div>
 
-  {{-- LISTAS DE PRODUCTOS CON PROBLEMAS --}}
-  @php $listas = [
-    ['t' => '🔻 Productos con poco stock', 'data' => $lowStock, 'bg' => 'from-red-50 to-red-100', 'border' => 'border-red-300'],
-    ['t' => '⚫ Productos vencidos', 'data' => $expired, 'bg' => 'from-gray-100 to-gray-200', 'border' => 'border-gray-400'],
-    ['t' => '⏳ Por vencer pronto (30 días)', 'data' => $expiring, 'bg' => 'from-amber-50 to-amber-100', 'border' => 'border-amber-300'],
-  ]; @endphp
 
-  @foreach ($listas as $L)
-    <div class="rounded-3xl bg-gradient-to-br {{ $L['bg'] }} shadow-xl border-4 {{ $L['border'] }} overflow-hidden">
-      <div class="px-6 py-4 border-b-2 {{ $L['border'] }} font-bold text-xl text-gray-800">{{ $L['t'] }}</div>
-      <div class="max-h-80 overflow-auto divide-y">
-        @forelse ($L['data'] as $it)
-          <div class="px-6 py-4">
-            <div class="font-bold text-lg text-gray-800">{{ $it->name }}</div>
-            <div class="text-gray-600 text-base mt-1">
-              @isset($it->stock) 📦 Quedan: {{ $it->stock }} @endisset
-              @isset($it->min_stock) · Mínimo: {{ $it->min_stock }} @endisset
-              @isset($it->expires_at) · ⏰ Vence: {{ $it->expires_at }} @endisset
-            </div>
-          </div>
-        @empty
-          <div class="px-6 py-4 text-base text-gray-500">✅ ¡Todo bien! No hay problemas aquí</div>
-        @endforelse
-      </div>
-    </div>
-  @endforeach
+
+
+
 
   {{-- VENTAS Y UNIDADES VENDIDAS --}}
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">

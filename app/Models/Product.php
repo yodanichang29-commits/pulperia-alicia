@@ -68,4 +68,13 @@ public function getImageUrlAttribute()
         return round(($this->price - $this->purchase_price), 2);
     }
 
+
+    public function suppliers()
+{
+    return $this->belongsToMany(\App\Models\Provider::class, 'product_supplier')
+        ->withPivot(['purchase_price', 'preferred'])
+        ->withTimestamps();
+}
+
+
 }
