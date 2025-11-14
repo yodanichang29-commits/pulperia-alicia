@@ -574,49 +574,49 @@
         </div>
       </div>
 
-      {{-- DERECHA: Grid de productos --}}
-      <div class="md:col-span-8">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          @foreach($products as $p)
-            <button
-              @click="add({ id: {{ $p->id }}, name: @js($p->name), price: {{ $p->price }}, cat: @js($p->category) })"
-              x-show="showProduct(@js($p->category), @js($p->name))"
-              class="relative group rounded-2xl bg-white border border-gray-200 hover:border-blue-400 overflow-hidden text-left shadow hover:shadow-lg transition">
+   {{-- DERECHA: Grid de productos --}}
+<div class="md:col-span-8">
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    @foreach($products as $p)
+      <button
+        @click="add({ id: {{ $p->id }}, name: @js($p->name), price: {{ $p->price }}, cat: @js($p->category) })"
+        x-show="showProduct(@js($p->category), @js($p->name))"
+        class="relative group rounded-2xl bg-white border border-gray-200 hover:border-blue-400 overflow-hidden text-left shadow hover:shadow-lg transition">
 
+        {{-- ✅ ETIQUETA DE MÁS VENDIDO (solo para los top 3) --}}
+        @if($loop->iteration <= 3 && isset($p->total_vendido) && $p->total_vendido > 0)
+          <div class="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+            <span>🔥</span>
+            <span>#{{ $loop->iteration }}</span>
+          </div>
+        @endif
 
-{{-- ✅ ETIQUETA DE MÁS VENDIDO (solo para los top 3) --}}
-    @if($loop->iteration <= 3 && isset($p->total_vendido) && $p->total_vendido > 0)
-      <div class="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
-        <span>🔥</span>
-        <span>#{{ $loop->iteration }}</span>
-      </div>
-    @endif
-
-              <div class="relative rounded-2xl overflow-hidden bg-white grid place-items-center">
-                <div class="w-full h-40 md:h-44 p-2">
-                  <img
-                    src="{{ $p->image_url }}"
-                    alt="{{ $p->name }}"
-                    class="w-full h-full object-contain"
-                    loading="lazy"
-                    onerror="this.onerror=null;this.src='{{ asset('images/placeholder.png') }}';"
-                  >
-                </div>
-              </div>
-              <div class="p-3">
-                <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-blue-100 text-blue-800 uppercase tracking-wide">
-                  {{ $p->category }}
-                </span>
-                <div class="mt-1 h-12 font-semibold text-gray-800 leading-snug line-clamp-2">
-                  {{ $p->name }}
-                </div>
-                <div class="mt-1 text-lg font-bold text-blue-700">L {{ number_format($p->price,2) }}</div>
-              </div>
-            </button>
-          @endforeach
+        <div class="relative rounded-2xl overflow-hidden bg-white grid place-items-center">
+          <div class="w-full h-40 md:h-44 p-2">
+            <img
+  src="{{ $p->image_path ? asset('storage/'.$p->image_path) : asset('images/default-product.png') }}"
+  alt="{{ $p->name }}"
+  class="w-full h-full object-contain"
+  loading="lazy"
+  onerror="this.onerror=null;this.src='{{ asset('images/placeholder.png') }}';"
+            >
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div class="p-3">
+          <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-blue-100 text-blue-800 uppercase tracking-wide">
+            {{ $p->category }}
+          </span>
+          <div class="mt-1 h-12 font-semibold text-gray-800 leading-snug line-clamp-2">
+            {{ $p->name }}
+          </div>
+          <div class="mt-1 text-lg font-bold text-blue-700">L {{ number_format($p->price,2) }}</div>
+        </div>
+
+      </button>
+    @endforeach
+  </div>
+</div>
 
     {{-- MODAL: Nuevo cliente --}}
     <template x-teleport="body">
