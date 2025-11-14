@@ -24,7 +24,7 @@ protected static function booted()
 
     // Campos que se pueden guardar directamente
      protected $fillable = [
-        'name', 'barcode', 'price', 'purchase_price', 'unit', 'image_path',
+        'name', 'barcode', 'price', 'purchase_price', 'unit', 'photo',
         'expires_at', 'provider_id', 'category', 'stock', 'min_stock', 'active'
     ];
 
@@ -37,13 +37,13 @@ protected static function booted()
 
 public function getImageUrlAttribute()
 {
-    if ($this->image_path && file_exists(public_path('storage/' . $this->image_path))) {
-        return asset('storage/' . $this->image_path);
+    if ($this->photo && file_exists(public_path('storage/' . $this->photo))) {
+        return asset('storage/' . $this->photo);
     }
 
     // Fallback si el symlink falla
-    if ($this->image_path && file_exists(public_path($this->image_path))) {
-        return asset($this->image_path);
+    if ($this->photo && file_exists(public_path($this->photo))) {
+        return asset($this->photo);
     }
 
     return asset('images/placeholder.png');

@@ -185,24 +185,28 @@ $starsChart = array_slice($stars, 0, 10);
 
 // === HEATMAP: ventas (tickets) por hora y día (SQLite) ===
 // strftime('%w'): 0=Dom .. 6=Sáb  → lo convertimos a 1=Lun .. 7=Dom: (w+6)%7+1
-$rawHeat = \Illuminate\Support\Facades\DB::table('sales as s')
-    ->selectRaw("
-        CAST( ((strftime('%w', s.created_at) + 6) % 7) + 1 AS INTEGER ) as dow,
-        CAST( strftime('%H', s.created_at) AS INTEGER ) as hour,
-        COUNT(*) AS tickets
-    ")
+$horasPico = DB::table('sales as s')
+    ->selectRaw('
+        (WEEKDAY(s.created_at) + 1) as dow,
+        HOUR(s.created_at) as hour,
+        COUNT(*) as tickets
+    ')
     ->whereBetween('s.created_at', [$inicio, $fin])
     ->groupBy('dow', 'hour')
+    ->orderBy('dow')
+    ->orderBy('hour')
     ->get();
+
 
 // Matriz 7x24 rellenada con ceros
 $grid = [];
 for ($d = 1; $d <= 7; $d++) {
     $grid[$d] = array_fill(0, 24, 0);
 }
-foreach ($rawHeat as $r) {
+foreach ($horasPico as $r) {
     $grid[(int)$r->dow][(int)$r->hour] = (int)$r->tickets;
 }
+
 
 $dayLabels = [
     1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles',
@@ -291,12 +295,13 @@ $kpis = [
             ->sum('total');
 
         // 4) Horas pico (histograma 24h)
-        $hourly = DB::table('sales')
-            ->selectRaw("strftime('%H', created_at) as hour, COUNT(*) as cnt")
-            ->whereBetween('created_at', [$start, $end])
-            ->groupBy('hour')
-            ->orderBy('hour')
-            ->get();
+       $hourly = DB::table('sales')
+    ->selectRaw("HOUR(created_at) as hour, COUNT(*) as cnt")
+    ->whereBetween('created_at', [$start, $end])
+    ->groupBy('hour')
+    ->orderBy('hour')
+    ->get();
+
 
         // 5) Productos que más / menos se mueven (por cantidad)
         $topMovers = DB::table('sale_items as si')
@@ -352,12 +357,15 @@ $marginProducts = DB::table('products')
 
 
         // 7) Ventas por mes (últimos 12)
-        $salesByMonth = DB::table('sales')
-            ->selectRaw("strftime('%Y-%m', created_at) as ym, SUM(total) as total")
-            ->where('created_at','>=', Carbon::today()->subMonths(12)->startOfMonth()->toDateTimeString())
-            ->groupBy('ym')
-            ->orderBy('ym')
-            ->get();
+ $salesByMonth = DB::table('sales')
+    ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, SUM(total) as total")
+    ->where('created_at', '>=', Carbon::today()->subMonths(12)->startOfMonth()->toDateTimeString())
+    ->groupBy('ym')
+    ->orderBy('ym')
+    ->get();
+
+
+
 
             $totalAll = max(1, $salesByMonth->sum('total'));
 $salesByMonth = $salesByMonth->map(function($s) use ($totalAll){
@@ -423,7 +431,7 @@ $lowStock = DB::table('products')
     ->whereNotNull('min_stock')
     ->where('min_stock', '>', 0)
     ->whereColumn('stock', '<', 'min_stock')
-    ->select('id','name','stock','min_stock','expires_at','provider_id')
+    ->select('id','name','stock','min_stock','expires_at')
     ->orderByRaw('(min_stock - stock) DESC')
     ->get();
 
@@ -431,7 +439,7 @@ $lowStock = DB::table('products')
 $expired = DB::table('products')
     ->whereNotNull('expires_at')
     ->whereDate('expires_at','<',$today)
-    ->select('id','name','stock','expires_at','provider_id')
+    ->select('id','name','stock','expires_at')
     ->orderBy('expires_at')
     ->get();
 
@@ -440,7 +448,7 @@ $expiring = DB::table('products')
     ->whereNotNull('expires_at')
     ->whereDate('expires_at','>=',$today)
     ->whereDate('expires_at','<=',$in30)
-    ->select('id','name','stock','expires_at','provider_id')
+    ->select('id','name','stock','expires_at')
     ->orderBy('expires_at')
     ->get();
 
@@ -467,11 +475,12 @@ $compare = [
 
 // === Horas pico (histograma 24h) ===
 $hourly = DB::table('sales')
-    ->selectRaw("strftime('%H', created_at) as hour, COUNT(*) as cnt")
+    ->selectRaw("HOUR(created_at) as hour, COUNT(*) as cnt")
     ->whereBetween('created_at', [$start, $end])
     ->groupBy('hour')
     ->orderBy('hour')
     ->get();
+
 
 
 

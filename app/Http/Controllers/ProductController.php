@@ -17,8 +17,6 @@ use Illuminate\Support\Facades\Storage;
             'barcode'        => ['nullable','string','max:100'],
             'price'          => ['required','numeric','min:0'],
             'purchase_price' => ['nullable','numeric','min:0'],
-            'unit'           => ['nullable','string','max:50'],
-            'provider_id'    => ['nullable','integer','exists:providers,id'],
             'stock'          => ['required','integer','min:0'],
             'min_stock'      => ['required','integer','min:0'],
             'expires_at'     => ['nullable','date'],
@@ -32,7 +30,7 @@ use Illuminate\Support\Facades\Storage;
         if ($request->hasFile('image')) {
             // guarda en storage/app/public/products
             $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = $path;
+            $data['photo'] = $path;
         }
 
         $product = Product::create($data);
@@ -48,8 +46,7 @@ use Illuminate\Support\Facades\Storage;
             'barcode'        => ['nullable','string','max:100'],
             'price'          => ['required','numeric','min:0'],
             'purchase_price' => ['nullable','numeric','min:0'],
-            'unit'           => ['nullable','string','max:50'],
-            'provider_id'    => ['nullable','integer','exists:providers,id'],
+
             'stock'          => ['required','integer','min:0'],
             'min_stock'      => ['required','integer','min:0'],
             'expires_at'     => ['nullable','date'],
@@ -63,7 +60,7 @@ use Illuminate\Support\Facades\Storage;
         // 🗑️ quitar imagen
         if ($request->boolean('remove_image') && $product->image_path) {
             Storage::disk('public')->delete($product->image_path);
-            $data['image_path'] = null;
+            $data['photo'] = null;
         }
 
         // 📸 nueva imagen
@@ -72,7 +69,7 @@ use Illuminate\Support\Facades\Storage;
                 Storage::disk('public')->delete($product->image_path);
             }
             $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = $path;
+            $data['photo'] = $path;
         }
 
         $product->update($data);

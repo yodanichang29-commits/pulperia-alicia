@@ -28,24 +28,25 @@ class CajaController extends Controller
     // Compatible con SQLite
     $mesActual = now()->format('Y-m');  // Ejemplo: "2025-11"
     
-    $products = Product::select(
-            'products.id',
-            'products.name',
-            'products.price',
-            'products.image_path',
-            'products.category'
-        )
-        ->leftJoin('sale_items', function($join) use ($mesActual) {
-            $join->on('sale_items.product_id', '=', 'products.id')
-                 // Solo contar ventas del mes actual (compatible con SQLite)
-                 ->where('sale_items.created_at', '>=', $mesActual . '-01 00:00:00')
-                 ->where('sale_items.created_at', '<', now()->addMonth()->startOfMonth()->format('Y-m-d H:i:s'));
-        })
-        ->selectRaw('COALESCE(SUM(sale_items.qty), 0) as total_vendido')
-        ->groupBy('products.id', 'products.name', 'products.price', 'products.image_path', 'products.category')
-        ->orderByDesc('total_vendido')  // Los más vendidos primero
-        ->orderBy('products.name')       // Desempate por nombre
-        ->get();
+$products = Product::select(
+        'products.id',
+        'products.name',
+        'products.price',
+        'products.photo as image_path',
+        'products.category'
+    )
+    ->leftJoin('sale_items', function($join) use ($mesActual) {
+        $join->on('sale_items.product_id', '=', 'products.id')
+            ->where('sale_items.created_at', '>=', $mesActual . '-01 00:00:00')
+            ->where('sale_items.created_at', '<', now()->addMonth()->startOfMonth()->format('Y-m-d H:i:s'));
+    })
+    ->selectRaw('COALESCE(SUM(sale_items.qty), 0) as total_vendido')
+    ->groupBy('products.id', 'products.name', 'products.price', 'products.photo', 'products.category')
+    ->orderByDesc('total_vendido')
+    ->orderBy('products.name')
+    ->get();
+
+
 
     $categories = Product::select('category')
         ->distinct()
