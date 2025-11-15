@@ -77,11 +77,24 @@ class InventoryTransactionController extends Controller
             'items.*.qty'           => 'required|integer|min:1',
             'items.*.unit_cost'     => 'nullable|numeric|min:0',
 
+            // 🔹 Campos de pago (solo relevantes para compras)
+            'paid_from_cash'    => 'nullable|numeric|min:0',
+            'paid_from_outside' => 'nullable|numeric|min:0',
+
         ]);
 
         // 2) Reglas extra
         if ($data['type'] === 'in' && $data['reason'] === 'purchase' && empty($data['provider_id'])) {
             return back()->withErrors(['provider_id' => 'Debes seleccionar un proveedor para una compra.'])->withInput();
+        }
+
+        // 🔹 Validar que los montos de pago sean consistentes (solo para compras)
+        $paidFromCash = (float)($data['paid_from_cash'] ?? 0);
+        $paidFromOutside = (float)($data['paid_from_outside'] ?? 0);
+
+        // Validación de montos negativos (extra seguridad)
+        if ($paidFromCash < 0 || $paidFromOutside < 0) {
+            return back()->withErrors(['error' => 'Los montos de pago no pueden ser negativos.'])->withInput();
         }
 
         // 3) Ejecutar todo en transacción
@@ -98,6 +111,9 @@ class InventoryTransactionController extends Controller
                 'notes'       => $data['notes'] ?? null,
                 'user_id'     => Auth::id(),
                 'total_cost'  => 0,
+                // 🔹 Guardar montos de pago
+                'paid_from_cash'    => $paidFromCash,
+                'paid_from_outside' => $paidFromOutside,
             ]);
 
             $total = 0;
@@ -156,6 +172,43 @@ class InventoryTransactionController extends Controller
 
             // Total en encabezado
             $tx->update(['total_cost' => $total]);
+
+            // 🔹 VALIDACIÓN: La suma de pagos no debe exceder el total de la compra
+            $totalPagado = $paidFromCash + $paidFromOutside;
+            if ($totalPagado > $total) {
+                throw new \RuntimeException(
+                    "El total pagado (L {$totalPagado}) no puede ser mayor al total de la compra (L {$total})."
+                );
+            }
+
+            // 🔹 CREAR CASH_MOVEMENT si se pagó desde la caja del turno
+            // Solo para compras (type=in, reason=purchase) y si paid_from_cash > 0
+            if ($data['type'] === 'in' && $data['reason'] === 'purchase' && $paidFromCash > 0) {
+                // Obtener el turno de caja ACTUAL del usuario
+                $currentShift = CashShift::where('user_id', Auth::id())
+                    ->whereNull('closed_at')
+                    ->first();
+
+                if (!$currentShift) {
+                    throw new \RuntimeException(
+                        'No hay turno de caja abierto. Debes abrir un turno antes de pagar desde la caja.'
+                    );
+                }
+
+                // Crear el movimiento de caja automáticamente
+                CashMovement::create([
+                    'cash_shift_id'   => $currentShift->id,
+                    'date'            => $data['moved_at'] ?? now()->toDateString(),
+                    'type'            => 'egreso',
+                    'category'        => 'pago_proveedor',  // 🔹 Categoría especial que se excluye de gastos operativos
+                    'description'     => "Pago compra inventario (Ref: {$data['reference']}) - Proveedor: " .
+                                        ($tx->provider->name ?? 'N/A'),
+                    'amount'          => $paidFromCash,
+                    'payment_method'  => 'efectivo',
+                    'notes'           => "Pago automático desde caja. Compra ID: {$tx->id}",
+                    'created_by'      => Auth::id(),
+                ]);
+            }
 
             DB::commit();
 

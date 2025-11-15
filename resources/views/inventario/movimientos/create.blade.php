@@ -30,9 +30,37 @@
        reference: '',
        notes: '',
        items: [{ product_id:'', product_name:'', qty:1, unit_cost:'', resultados:[] }],
+       paid_from_cash: 0,
+       paid_from_outside: 0,
 
        add(){ this.items.push({ product_id:'', product_name:'', qty:1, unit_cost:'', resultados:[] }); },
        remove(i){ this.items.splice(i,1); },
+
+       // === Calcular total de la compra ===
+       get totalCompra() {
+         return this.items.reduce((sum, item) => {
+           const qty = parseFloat(item.qty) || 0;
+           const cost = parseFloat(item.unit_cost) || 0;
+           return sum + (qty * cost);
+         }, 0);
+       },
+
+       // === Calcular total pagado ===
+       get totalPagado() {
+         const fromCash = parseFloat(this.paid_from_cash) || 0;
+         const fromOutside = parseFloat(this.paid_from_outside) || 0;
+         return fromCash + fromOutside;
+       },
+
+       // === Calcular saldo pendiente ===
+       get saldoPendiente() {
+         return Math.max(0, this.totalCompra - this.totalPagado);
+       },
+
+       // === Validar que los pagos no excedan el total ===
+       get excedePago() {
+         return this.totalPagado > this.totalCompra;
+       },
 
        // === Autocompletar proveedor ===
        buscarProveedor(term){
@@ -198,9 +226,110 @@
         </table>
       </div>
 
+      <!-- ============================================
+           SECCION DE PAGOS (solo para compras)
+           ============================================ -->
+      <div x-show="type === 'in' && reason === 'purchase'"
+           class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border border-indigo-200">
+
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 mr-2 text-indigo-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+          </svg>
+          Información de Pago
+        </h3>
+
+        <!-- Resumen del total -->
+        <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+          <div class="flex justify-between items-center">
+            <span class="text-gray-700 font-medium">Total de la compra:</span>
+            <span class="text-2xl font-bold text-gray-900" x-text="'L ' + totalCompra.toFixed(2)"></span>
+          </div>
+        </div>
+
+        <!-- Campos de pago -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <!-- Pago desde caja -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              💵 Pago desde caja del turno
+              <span class="text-gray-500 text-xs font-normal">(efectivo)</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">L</span>
+              <input type="number"
+                     step="0.01"
+                     min="0"
+                     x-model="paid_from_cash"
+                     name="paid_from_cash"
+                     class="w-full pl-8 pr-4 py-2 rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                     :class="excedePago ? 'border-red-500 bg-red-50' : ''"
+                     placeholder="0.00">
+            </div>
+            <p class="mt-1 text-xs text-gray-600">Monto que se descontará del turno de caja actual</p>
+          </div>
+
+          <!-- Pago desde fondos externos -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              🏦 Pago desde fondos externos
+              <span class="text-gray-500 text-xs font-normal">(banco, dueño, etc.)</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">L</span>
+              <input type="number"
+                     step="0.01"
+                     min="0"
+                     x-model="paid_from_outside"
+                     name="paid_from_outside"
+                     class="w-full pl-8 pr-4 py-2 rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                     :class="excedePago ? 'border-red-500 bg-red-50' : ''"
+                     placeholder="0.00">
+            </div>
+            <p class="mt-1 text-xs text-gray-600">Dinero que NO proviene de la caja del turno</p>
+          </div>
+        </div>
+
+        <!-- Resumen de pagos -->
+        <div class="bg-white rounded-lg p-4 border border-gray-200 space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">Total pagado:</span>
+            <span class="font-semibold"
+                  :class="excedePago ? 'text-red-600' : 'text-gray-900'"
+                  x-text="'L ' + totalPagado.toFixed(2)"></span>
+          </div>
+          <div class="flex justify-between text-sm border-t pt-2">
+            <span class="text-gray-600">Saldo pendiente:</span>
+            <span class="font-semibold"
+                  :class="saldoPendiente > 0 ? 'text-amber-600' : 'text-green-600'"
+                  x-text="'L ' + saldoPendiente.toFixed(2)"></span>
+          </div>
+
+          <!-- Mensaje de advertencia si excede -->
+          <div x-show="excedePago" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            ⚠️ El total pagado no puede ser mayor al total de la compra
+          </div>
+
+          <!-- Mensaje informativo si queda saldo -->
+          <div x-show="saldoPendiente > 0 && !excedePago && totalCompra > 0"
+               class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            ℹ️ La compra quedará con saldo pendiente (fiado)
+          </div>
+
+          <!-- Mensaje de éxito si está totalmente pagada -->
+          <div x-show="saldoPendiente <= 0.01 && totalPagado > 0 && !excedePago"
+               class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            ✓ La compra quedará completamente pagada
+          </div>
+        </div>
+      </div>
+
       <div class="flex items-center gap-3">
         <button type="button" @click="add()" class="px-3 py-2 bg-gray-100 rounded-lg">+ Agregar fila</button>
-        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">
+        <button type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                :disabled="excedePago"
+                :class="excedePago ? 'opacity-50 cursor-not-allowed' : ''">
           Guardar
         </button>
       </div>

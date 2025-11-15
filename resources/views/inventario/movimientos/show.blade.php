@@ -84,6 +84,69 @@
       </div>
     </div>
 
+    {{-- Sección de información de pagos (solo para compras) --}}
+    @if($transaction->type === 'in' && $transaction->reason === 'purchase')
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-5 border border-indigo-200">
+        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2 text-indigo-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+          </svg>
+          Información de Pago
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {{-- Pago desde caja --}}
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <div class="text-xs text-gray-500 mb-1">💵 Pago desde caja</div>
+            <div class="text-lg font-bold text-gray-900">
+              L {{ number_format($transaction->paid_from_cash, 2) }}
+            </div>
+            @if($transaction->paid_from_cash > 0)
+              <div class="text-xs text-gray-600 mt-1">Descontado del turno</div>
+            @endif
+          </div>
+
+          {{-- Pago desde fondos externos --}}
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <div class="text-xs text-gray-500 mb-1">🏦 Pago externo</div>
+            <div class="text-lg font-bold text-gray-900">
+              L {{ number_format($transaction->paid_from_outside, 2) }}
+            </div>
+            @if($transaction->paid_from_outside > 0)
+              <div class="text-xs text-gray-600 mt-1">Banco/Dueño/Otros</div>
+            @endif
+          </div>
+
+          {{-- Saldo pendiente --}}
+          <div class="bg-white rounded-lg p-4 border-2
+                      @if($transaction->pending_balance > 0) border-amber-400 @else border-green-400 @endif">
+            <div class="text-xs text-gray-500 mb-1">📋 Saldo pendiente</div>
+            <div class="text-lg font-bold
+                        @if($transaction->pending_balance > 0) text-amber-600 @else text-green-600 @endif">
+              L {{ number_format($transaction->pending_balance, 2) }}
+            </div>
+            @if($transaction->is_fully_paid)
+              <div class="text-xs text-green-600 mt-1 font-medium">✓ Completamente pagada</div>
+            @else
+              <div class="text-xs text-amber-600 mt-1">Pendiente de pago</div>
+            @endif
+          </div>
+        </div>
+
+        {{-- Resumen total --}}
+        <div class="mt-4 pt-4 border-t border-indigo-200">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-gray-600">Total de la compra:</span>
+            <span class="font-semibold text-gray-900">L {{ number_format($transaction->total_cost, 2) }}</span>
+          </div>
+          <div class="flex justify-between items-center text-sm mt-1">
+            <span class="text-gray-600">Total pagado:</span>
+            <span class="font-semibold text-gray-900">L {{ number_format($transaction->total_paid, 2) }}</span>
+          </div>
+        </div>
+      </div>
+    @endif
+
     <div class="bg-white rounded-xl shadow overflow-x-auto">
       <table class="min-w-full text-sm">
         <thead class="bg-gray-50">

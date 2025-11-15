@@ -9,17 +9,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InventoryTransaction extends Model
 {
     protected $fillable = [
-        'type','reason','moved_at', 'provider_id','supplier','reference','notes','user_id','total_cost'
+        'type','reason','moved_at', 'provider_id','supplier','reference','notes','user_id','total_cost',
+        'paid_from_cash','paid_from_outside'
     ];
 
     protected $casts = [
         'moved_at' => 'date',
         'total_cost' => 'decimal:2',
+        'paid_from_cash' => 'decimal:2',
+        'paid_from_outside' => 'decimal:2',
     ];
 
 
 
- public function getReasonLabelAttribute(): string
+    public function getReasonLabelAttribute(): string
     {
         $map = [
             'purchase'     => 'Compra',
@@ -32,6 +35,30 @@ class InventoryTransaction extends Model
         ];
 
         return $map[$this->reason] ?? str_replace('_', ' ', $this->reason);
+    }
+
+    /**
+     * Calcula el total pagado (caja + externo)
+     */
+    public function getTotalPaidAttribute(): float
+    {
+        return (float)$this->paid_from_cash + (float)$this->paid_from_outside;
+    }
+
+    /**
+     * Calcula el saldo pendiente (total - pagado)
+     */
+    public function getPendingBalanceAttribute(): float
+    {
+        return max(0, (float)$this->total_cost - $this->total_paid);
+    }
+
+    /**
+     * Verifica si la compra está completamente pagada
+     */
+    public function getIsFullyPaidAttribute(): bool
+    {
+        return $this->pending_balance <= 0.01; // margen de error por decimales
     }
 
 
