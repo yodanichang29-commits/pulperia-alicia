@@ -101,7 +101,7 @@ public function edit(Product $product)
 
 
 /**
- * Buscar productos por nombre (autocomplete)
+ * Buscar productos por nombre o código de barras (autocomplete)
  *
  * @param Request $request
  * @return \Illuminate\Http\JsonResponse
@@ -109,8 +109,16 @@ public function edit(Product $product)
 public function buscar(Request $request)
 {
     $term = $request->get('q');
-    $results = \App\Models\Product::where('name', 'like', "%{$term}%")
-        ->select('id', 'name', 'barcode', 'provider_id', 'purchase_price', 'price', 'stock')
+
+    if (!$term || strlen($term) < 1) {
+        return response()->json([]);
+    }
+
+    $results = \App\Models\Product::where(function($query) use ($term) {
+            $query->where('name', 'like', "%{$term}%")
+                  ->orWhere('barcode', 'like', "%{$term}%");
+        })
+        ->select('id', 'name', 'barcode as codigo', 'price', 'purchase_price', 'stock')
         ->orderBy('name')
         ->take(10)
         ->get();
