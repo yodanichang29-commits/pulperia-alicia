@@ -32,7 +32,8 @@ class InventoryTransactionController extends Controller
         ->when($to, fn($q) => $q->whereDate('moved_at', '<=', $to))
         ->when($type, fn($q) => $q->where('type', $type))
         ->when($providerId, fn($q) => $q->where('provider_id', $providerId))
-        ->orderByDesc('moved_at');
+    ->latest('moved_at');
+
 
     $txs = $query->paginate(15)->withQueryString();
 
@@ -63,6 +64,7 @@ class InventoryTransactionController extends Controller
      */
     public function store(Request $request)
     {
+
         // 1) Validación
         $data = $request->validate([
             'type'         => 'required|in:in,out',
@@ -125,14 +127,10 @@ class InventoryTransactionController extends Controller
             }
 
             // Detalle
-            foreach ($data['items'] as $row) {
-                $product = Product::findOrFail($row['product_id']);
+           foreach ($data['items'] as $row) {
+    $product = Product::findOrFail($row['product_id']);
 
-                // Validar que el producto pertenezca al proveedor seleccionado (si aplica)
-                if (!empty($data['provider_id']) && (int)$product->provider_id !== (int)$data['provider_id']) {
-                    throw new \RuntimeException("El producto {$product->name} no pertenece al proveedor seleccionado.");
-                }
-
+              
                 // Cantidad y costo unitario (fallback a purchase_price)
                 $qty  = (int) $row['qty'];
                 $cost = (float) ($row['unit_cost'] ?? ($product->purchase_price ?? 0));
