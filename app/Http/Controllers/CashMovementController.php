@@ -145,6 +145,7 @@ class CashMovementController extends Controller
     {
         // Categorías predefinidas
         $categoriesIngreso = [
+            'Ingreso al fondo inicial',
             'Préstamo recibido',
             'Inversión/aporte personal',
             'Venta de activo',
@@ -219,11 +220,47 @@ class CashMovementController extends Controller
             $validated['receipt_file'] = $path;
         }
 
-        // Agregar usuario que lo creó
-        $validated['created_by'] = Auth::id();
+      // Agregar usuario que lo creó
+$validated['created_by'] = Auth::id();
 
-        // Crear el movimiento
-        CashMovement::create($validated);
+// 🔹 Si el movimiento es en EFECTIVO y hay turno abierto,
+// lo vinculamos al turno para que afecte la caja física
+if ($validated['payment_method'] === 'efectivo') {
+    $currentShift = CashShift::openForUser(Auth::id())->first();
+
+    if ($currentShift) {
+        $validated['cash_shift_id'] = $currentShift->id;
+    }
+}
+
+
+
+
+// Agregar usuario que lo creó
+$validated['created_by'] = Auth::id();
+
+// 👉 Si el movimiento se hizo en EFECTIVO y hay turno abierto,
+// lo ligamos a la caja del turno actual
+if ($validated['payment_method'] === 'efectivo') {
+    $currentShift = CashShift::where('user_id', Auth::id())
+        ->whereNull('closed_at')
+        ->first();
+
+    if ($currentShift) {
+        $validated['cash_shift_id'] = $currentShift->id;
+    }
+}
+
+// Crear el movimiento
+CashMovement::create($validated);
+
+
+
+
+
+// Crear el movimiento
+CashMovement::create($validated);
+
 
         return redirect()
             ->route('cash-movements.index')
@@ -253,6 +290,7 @@ class CashMovementController extends Controller
     {
         // Categorías predefinidas
         $categoriesIngreso = [
+                 'Ingreso al fondo inicial', 
             'Préstamo recibido',
             'Inversión/aporte personal',
             'Venta de activo',

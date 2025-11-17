@@ -147,16 +147,55 @@
               <span>L <span x-text="Number(summary.abonos_total || 0).toFixed(2)"></span></span>
             </div>
 
+
+<!-- INGRESOS / EGRESOS DE CAJA -->
+<div class="mt-4 space-y-1 text-sm text-gray-700">
+
+    <div class="flex justify-between">
+        <span>Ingresos de caja (efectivo)</span>
+        <span class="font-semibold"
+              x-text="'L ' + Number(summary.cash_movements?.ingresos || 0).toFixed(2)">
+        </span>
+    </div>
+
+    <div class="flex justify-between">
+        <span>Salidas de caja (efectivo)</span>
+        <span class="font-semibold text-red-600"
+              x-text="'L ' + Number(summary.cash_movements?.egresos || 0).toFixed(2)">
+        </span>
+    </div>
+
+   
+
+</div>
+
+
+
+
+
          <div class="border-t mt-2 pt-3">
   <div class="flex justify-between text-sm font-semibold">
     <span>Efectivo esperado</span>
     <span class="text-lg" x-text="'L ' + Number(summary.expected_cash ?? 0).toFixed(2)"></span>
   </div>
+
+
+
+
+
+
   <div class="text-xs text-gray-500 mt-1">
-    (Fondo + Ventas efectivo + Abonos - Devoluciones)
+   (Fondo inicial + Ventas en efectivo + Abonos en efectivo
+   + Ingresos de caja - Devoluciones - Salidas de caja)
   </div>
 </div>
           </div>
+
+
+
+
+
+
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
   <p class="text-sm text-amber-800">
     <strong>⚠️ Importante:</strong> Cuenta todo el efectivo que tienes en caja y anota el total exacto.

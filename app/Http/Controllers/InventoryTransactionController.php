@@ -32,7 +32,9 @@ class InventoryTransactionController extends Controller
         ->when($to, fn($q) => $q->whereDate('moved_at', '<=', $to))
         ->when($type, fn($q) => $q->where('type', $type))
         ->when($providerId, fn($q) => $q->where('provider_id', $providerId))
-    ->latest('moved_at');
+->latest('moved_at');
+
+
 
 
     $txs = $query->paginate(15)->withQueryString();

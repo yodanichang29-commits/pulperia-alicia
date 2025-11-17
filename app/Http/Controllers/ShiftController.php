@@ -101,24 +101,41 @@ class ShiftController extends Controller
         $devolucionesTotal = $this->calculateReturnsTotal($shift);
         $cashClientPayments = $this->calculateCashPayments($shift->id);
         $abonosData = $this->groupPaymentsByMethod($shift->id);
+                // Movimientos de caja del turno (ingresos/egresos en efectivo)
+        $cashMovs = $this->calculateCashShiftMovements($shift->id);
 
-        // Calcular efectivo esperado = Fondo + Ventas cash + Abonos - Devoluciones
-        $expected_cash = (float)($shift->opening_float ?? 0)
-                       + $cash_total
-                       + $cashClientPayments
-                       - $devolucionesTotal;
+
+                // Efectivo esperado = Fondo + Ventas cash + Abonos efectivo
+        //                    + Ingresos de caja - Devoluciones - Egresos de caja
+       $expected_cash = (float)($shift->opening_float ?? 0)
+               + $cash_total                    // ventas en efectivo
+               + $cashClientPayments            // abonos en efectivo
+               + $cashMovs['ingresos']          // ingresos de caja (ej. préstamo en efectivo)
+               - $devolucionesTotal             // devoluciones
+               - $cashMovs['egresos'];          // todos los egresos en efectivo (incluye compras)
+
+
 
         return response()->json([
-            'by_payment'        => $by_payment,
-            'expected_cash'     => round($expected_cash, 2),
-            'abonos_by_method'  => [
-                'efectivo'      => $abonosData['efectivo'],
-                'tarjeta'       => $abonosData['tarjeta'],
-                'transferencia' => $abonosData['transferencia'],
-            ],
-            'abonos_total'      => round($abonosData['total'], 2),
-            'devoluciones'      => round($devolucionesTotal, 2),
-        ]);
+    'by_payment'        => $by_payment,
+    'expected_cash'     => round($expected_cash, 2),
+
+    'abonos_by_method'  => [
+        'efectivo'      => $abonosData['efectivo'],
+        'tarjeta'       => $abonosData['tarjeta'],
+        'transferencia' => $abonosData['transferencia'],
+    ],
+    'abonos_total'      => round($abonosData['total'], 2),
+    'devoluciones'      => round($devolucionesTotal, 2),
+
+    // 👇 NUEVO BLOQUE PARA EL MODAL
+    'cash_movements'    => [
+        'ingresos' => round($cashMovs['ingresos'], 2),
+        'egresos'  => round($cashMovs['egresos'],  2),
+        'compras'  => round($cashMovs['compras'],  2),
+    ],
+]);
+
     }
 
     /**
@@ -145,12 +162,19 @@ class ShiftController extends Controller
         $devolucionesTotal = $this->calculateReturnsTotal($shift);
         $cashClientPayments = $this->calculateCashPayments($shift->id);
         $abonosData = $this->groupPaymentsByMethod($shift->id);
+                // Movimientos de caja del turno (ingresos/egresos en efectivo)
+        $cashMovs = $this->calculateCashShiftMovements($shift->id);
 
-        // Efectivo esperado = Fondo inicial + Ventas cash + Abonos - Devoluciones
+
+           // Efectivo esperado = Fondo inicial + Ventas cash + Abonos efectivo
+        //                    + Ingresos de caja - Devoluciones - Egresos de caja
         $expected = (float) $shift->opening_float
                   + $salesCashTotal
                   + $cashClientPayments
-                  - $devolucionesTotal;
+                  + $cashMovs['ingresos']
+                  - $devolucionesTotal
+                  - $cashMovs['egresos'];
+
 
         // Calcular diferencia
         $closing = (float) $request->float('closing_cash_count');
@@ -234,5 +258,34 @@ class ShiftController extends Controller
 
         return $grouped;
     }
+
+
+
+  /**
+ * Movimientos de caja del turno (solo EFECTIVO)
+ */
+private function calculateCashShiftMovements(int $shiftId): array
+{
+    $base = CashMovement::where('cash_shift_id', $shiftId)
+        ->where('payment_method', 'efectivo'); // afecta la caja física
+
+    // 🔹 Total usado para COMPRAS de inventario
+    $compras = (clone $base)
+        ->where('category', 'pago_proveedor')
+        ->sum('amount');
+
+    // 🔹 Totales generales de ingresos/egresos
+    $totals = $base->selectRaw('type, SUM(amount) as total')
+        ->groupBy('type')
+        ->pluck('total', 'type')
+        ->toArray();
+
+    return [
+        'ingresos' => (float)($totals['ingreso'] ?? 0),
+        'egresos'  => (float)($totals['egreso']  ?? 0),
+        'compras'  => (float)$compras,
+    ];
+}
+
 
 }

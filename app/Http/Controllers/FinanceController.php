@@ -58,30 +58,47 @@ class FinanceController extends Controller
         // ========================================
         // 3) ENTRADAS - ABONOS POR MÉTODO DE PAGO
         // ========================================
-        $abonosEfectivo = ClientPayment::whereBetween('created_at', [$start, $end])
-            ->where('payment_method', 'efectivo')->sum('amount');
-        
-        $abonosTarjeta = ClientPayment::whereBetween('created_at', [$start, $end])
-            ->where('payment_method', 'tarjeta')->sum('amount');
-        
-        $abonosTransferencia = ClientPayment::whereBetween('created_at', [$start, $end])
-            ->where('payment_method', 'transferencia')->sum('amount');
+        // 3) ENTRADAS - ABONOS POR MÉTODO DE PAGO
+$abonosEfectivo = ClientPayment::whereBetween('created_at', [$start, $end])
+    ->where('method', 'efectivo')
+    ->sum('amount');
+
+$abonosTarjeta = ClientPayment::whereBetween('created_at', [$start, $end])
+    ->where('method', 'tarjeta')
+    ->sum('amount');
+
+$abonosTransferencia = ClientPayment::whereBetween('created_at', [$start, $end])
+    ->where('method', 'transferencia')
+    ->sum('amount');
+
 
         $abonosTotal = $abonosEfectivo + $abonosTarjeta + $abonosTransferencia;
 
         // ========================================
-        // 4) ENTRADAS - OTROS INGRESOS
-        // ========================================
-        $otrosIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->where('type', 'ingreso')
-            ->sum('amount');
+      // 4) ENTRADAS - OTROS INGRESOS
+// ⚠️ EXCLUIMOS "Inversión/aporte personal" porque es aporte al fondo, no ingreso del negocio
+$otrosIngresos = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+    ->where('type', 'ingreso')
+    ->where('category', '!=', 'Ingreso al fondo inicial')   // 👈 clave
+    ->sum('amount');
 
-        $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->where('type', 'ingreso')
-            ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
-            ->groupBy('cat')
-            ->orderBy('total', 'desc')
-            ->get();
+$otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+    ->where('type', 'ingreso')
+    ->where('category', '!=', 'Ingreso al fondo inicial')   // 👈 igual aquí
+    ->selectRaw('COALESCE(custom_category, category) as cat, SUM(amount) as total')
+    ->groupBy('cat')
+    ->orderBy('total', 'desc')
+    ->get();
+
+
+    $prevOtrosIngresos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
+    ->where('type', 'ingreso')
+    ->where('category', '!=', 'Ingreso al fondo inicial')   // 👈 igual
+    ->sum('amount');
+
+
+
+
 
         // ========================================
         // 5) SALIDAS - INVENTARIO
