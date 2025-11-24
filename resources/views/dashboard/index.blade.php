@@ -110,6 +110,106 @@
     </div>
   @endforeach
 
+
+
+
+
+{{-- CALENDARIO CON NOTAS --}}
+<div class="bg-gradient-to-br from-cyan-100 to-blue-200 rounded-3xl shadow-2xl p-6 border-4 border-cyan-300">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-bold text-2xl text-gray-800">📅 Calendario de Notas</h3>
+    <div class="flex items-center gap-2">
+      <button onclick="cambiarMes(-1)" class="px-3 py-2 rounded-xl bg-white/80 hover:bg-white font-semibold">◀</button>
+      <span id="mesActual" class="text-lg font-bold px-4">Mes Actual</span>
+      <button onclick="cambiarMes(1)" class="px-3 py-2 rounded-xl bg-white/80 hover:bg-white font-semibold">▶</button>
+    </div>
+  </div>
+  
+  <div class="bg-white/60 rounded-2xl p-4">
+    <!-- Días de la semana -->
+    <div class="grid grid-cols-7 gap-2 mb-2">
+      <div class="text-center font-bold text-gray-700 py-2">Lun</div>
+      <div class="text-center font-bold text-gray-700 py-2">Mar</div>
+      <div class="text-center font-bold text-gray-700 py-2">Mié</div>
+      <div class="text-center font-bold text-gray-700 py-2">Jue</div>
+      <div class="text-center font-bold text-gray-700 py-2">Vie</div>
+      <div class="text-center font-bold text-gray-700 py-2">Sáb</div>
+      <div class="text-center font-bold text-gray-700 py-2">Dom</div>
+    </div>
+    
+    <!-- Días del mes -->
+    <div id="calendarioDias" class="grid grid-cols-7 gap-2">
+      <!-- Se llena con JavaScript -->
+    </div>
+  </div>
+  
+  <!-- Leyenda de colores -->
+  <div class="mt-4 flex flex-wrap gap-3 justify-center">
+    <div class="flex items-center gap-2">
+      <div class="w-4 h-4 rounded bg-green-400"></div>
+      <span class="text-sm font-semibold">Baja prioridad</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-4 h-4 rounded bg-yellow-400"></div>
+      <span class="text-sm font-semibold">Media prioridad</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-4 h-4 rounded bg-orange-400"></div>
+      <span class="text-sm font-semibold">Alta prioridad</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-4 h-4 rounded bg-red-500"></div>
+      <span class="text-sm font-semibold">Urgente</span>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para agregar/editar notas -->
+<div id="modalNota" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+    <h3 id="tituloModal" class="text-xl font-bold mb-4">Agregar Nota</h3>
+    
+    <input type="hidden" id="notaId">
+    <input type="hidden" id="notaFecha">
+    
+    <div class="mb-4">
+      <label class="block text-sm font-semibold mb-2">Fecha:</label>
+      <p id="fechaMostrar" class="text-gray-700 font-medium"></p>
+    </div>
+    
+    <div class="mb-4">
+      <label class="block text-sm font-semibold mb-2">Nota:</label>
+      <textarea id="notaTexto" rows="4" class="w-full border-2 rounded-xl px-3 py-2" placeholder="Escribe tu nota aquí..."></textarea>
+    </div>
+    
+    <div class="mb-4">
+      <label class="block text-sm font-semibold mb-2">Prioridad:</label>
+      <select id="notaPrioridad" class="w-full border-2 rounded-xl px-3 py-2">
+        <option value="low">🟢 Baja</option>
+        <option value="medium">🟡 Media</option>
+        <option value="high">🟠 Alta</option>
+        <option value="urgent">🔴 Urgente</option>
+      </select>
+    </div>
+    
+    <div class="flex gap-2">
+      <button onclick="guardarNota()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-xl">
+        Guardar
+      </button>
+      <button onclick="cerrarModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 rounded-xl">
+        Cancelar
+      </button>
+      <button id="btnEliminar" onclick="eliminarNota()" class="hidden bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-xl">
+        🗑️
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
   {{-- VENTAS Y UNIDADES VENDIDAS --}}
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
     <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-3xl shadow-2xl p-8 border-4 border-green-300">
@@ -298,6 +398,281 @@
     'starsChart' => $starsChart ?? [],
     'salesByDay' => $sbd,
   ]) !!});
+</script>
+
+
+
+
+<script>
+// Variables globales del calendario
+let mesActual = new Date().getMonth();
+let añoActual = new Date().getFullYear();
+let notasDelMes = {};
+
+// Colores según prioridad
+const coloresPrioridad = {
+    'low': 'bg-green-400 border-green-500',
+    'medium': 'bg-yellow-400 border-yellow-500',
+    'high': 'bg-orange-400 border-orange-500',
+    'urgent': 'bg-red-500 border-red-600'
+};
+
+// Cargar calendario al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    cargarCalendario();
+});
+
+// Cambiar de mes
+function cambiarMes(direccion) {
+    mesActual += direccion;
+    if (mesActual > 11) {
+        mesActual = 0;
+        añoActual++;
+    } else if (mesActual < 0) {
+        mesActual = 11;
+        añoActual--;
+    }
+    cargarCalendario();
+}
+
+// Cargar el calendario
+function cargarCalendario() {
+    const nombresMeses = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    
+    document.getElementById('mesActual').textContent = 
+        nombresMeses[mesActual] + ' ' + añoActual;
+    
+    // Cargar notas del servidor
+    fetch(`/calendar/notes?year=${añoActual}&month=${mesActual + 1}`)
+        .then(res => res.json())
+        .then(data => {
+            notasDelMes = data;
+            generarDiasCalendario();
+        })
+        .catch(err => {
+            console.error('Error cargando notas:', err);
+            generarDiasCalendario();
+        });
+}
+
+// Generar los días del mes
+function generarDiasCalendario() {
+    const primerDia = new Date(añoActual, mesActual, 1);
+    const ultimoDia = new Date(añoActual, mesActual + 1, 0);
+    const diasEnMes = ultimoDia.getDate();
+    
+    // Ajustar el día de la semana (Lunes = 0)
+    let diaSemana = primerDia.getDay() - 1;
+    if (diaSemana < 0) diaSemana = 6;
+    
+    const contenedor = document.getElementById('calendarioDias');
+    contenedor.innerHTML = '';
+    
+    // Espacios vacíos antes del primer día
+    for (let i = 0; i < diaSemana; i++) {
+        contenedor.innerHTML += '<div></div>';
+    }
+    
+    // Día de hoy para comparar
+    const hoy = new Date();
+    const hoyDia = hoy.getDate();
+    const hoyMes = hoy.getMonth();
+    const hoyAño = hoy.getFullYear();
+    
+    // Generar cada día
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+        const fecha = `${añoActual}-${String(mesActual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        const tieneNota = notasDelMes[fecha] && notasDelMes[fecha].length > 0;
+        
+        // Verificar si es hoy (solo si es el mismo día, mes y año)
+        const esHoy = (dia === hoyDia && mesActual === hoyMes && añoActual === hoyAño);
+        
+        let colorClase = '';
+        let indicadorNota = '';
+        
+        if (tieneNota) {
+            const prioridad = notasDelMes[fecha][0].priority;
+            colorClase = coloresPrioridad[prioridad];
+            const numNotas = notasDelMes[fecha].length;
+            indicadorNota = `<div class="absolute top-1 right-1 ${colorClase} rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold text-white">${numNotas}</div>`;
+        }
+        
+        const borderHoy = esHoy ? 'border-4 border-blue-600' : 'border-2 border-gray-200';
+        const fondoBase = tieneNota ? colorClase : 'bg-white hover:bg-blue-50';
+        
+        contenedor.innerHTML += `
+            <div onclick="abrirModalNota('${fecha}')" 
+                 class="relative min-h-[70px] rounded-xl ${borderHoy} ${fondoBase} p-2 cursor-pointer transition-all hover:scale-105 hover:shadow-lg">
+                <div class="font-bold text-gray-800">${dia}</div>
+                ${indicadorNota}
+                ${tieneNota ? '<div class="text-xs mt-1 text-gray-700 truncate font-semibold">' + notasDelMes[fecha][0].note + '</div>' : ''}
+            </div>
+        `;
+    }
+}
+
+// Abrir modal para agregar/editar nota (FUNCIONA PARA CUALQUIER DÍA)
+function abrirModalNota(fecha) {
+    document.getElementById('notaFecha').value = fecha;
+    document.getElementById('notaId').value = '';
+    document.getElementById('fechaMostrar').textContent = formatearFecha(fecha);
+    document.getElementById('notaTexto').value = '';
+    document.getElementById('notaPrioridad').value = 'medium';
+    document.getElementById('btnEliminar').classList.add('hidden');
+    
+    // Si ya existe una nota, cargarla
+    if (notasDelMes[fecha] && notasDelMes[fecha].length > 0) {
+        const nota = notasDelMes[fecha][0];
+        document.getElementById('tituloModal').textContent = 'Editar Nota';
+        document.getElementById('notaId').value = nota.id;
+        document.getElementById('notaTexto').value = nota.note;
+        document.getElementById('notaPrioridad').value = nota.priority;
+        document.getElementById('btnEliminar').classList.remove('hidden');
+    } else {
+        document.getElementById('tituloModal').textContent = 'Agregar Nota';
+    }
+    
+    document.getElementById('modalNota').classList.remove('hidden');
+}
+
+// Cerrar modal
+function cerrarModal() {
+    document.getElementById('modalNota').classList.add('hidden');
+}
+
+// Guardar nota (FUNCIONA PARA CUALQUIER DÍA)
+// Guardar nota (CON VALIDACIÓN Y DEBUG MEJORADO)
+function guardarNota() {
+    const notaId = document.getElementById('notaId').value;
+    const fecha = document.getElementById('notaFecha').value;
+    const texto = document.getElementById('notaTexto').value.trim();
+    const prioridad = document.getElementById('notaPrioridad').value;
+    
+    console.log('=== INTENTANDO GUARDAR NOTA ===');
+    console.log('ID:', notaId || 'Nueva nota');
+    console.log('Fecha:', fecha);
+    console.log('Texto:', texto);
+    console.log('Prioridad:', prioridad);
+    
+    if (!texto) {
+        alert('Por favor escribe una nota');
+        return;
+    }
+    
+    if (!fecha) {
+        alert('Error: No hay fecha seleccionada');
+        console.error('No hay fecha!');
+        return;
+    }
+    
+    const datos = {
+        date: fecha,
+        note: texto,
+        priority: prioridad
+    };
+    
+    console.log('Datos a enviar:', JSON.stringify(datos, null, 2));
+    
+    const url = notaId ? `/calendar/notes/${notaId}` : '/calendar/notes';
+    const metodo = notaId ? 'PUT' : 'POST';
+    
+    console.log('URL:', url);
+    console.log('Método:', metodo);
+    
+    // Obtener token CSRF
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    console.log('Token CSRF encontrado:', csrfToken ? 'SÍ' : 'NO');
+    
+    if (!csrfToken) {
+        console.error('¡ERROR! No se encontró el token CSRF');
+        alert('Error de configuración: Falta token CSRF. Recarga la página.');
+        return;
+    }
+    
+    fetch(url, {
+        method: metodo,
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken.content
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(res => {
+        console.log('Respuesta recibida. Status:', res.status);
+        console.log('Headers:', res.headers);
+        
+        if (!res.ok) {
+            return res.text().then(text => {
+                console.error('Respuesta del servidor (ERROR):', text);
+                throw new Error(`Error ${res.status}: ${text.substring(0, 200)}`);
+            });
+        }
+        
+        return res.json();
+    })
+    .then(data => {
+        console.log('Respuesta JSON:', data);
+        
+        if (data.success) {
+            console.log('✅ Nota guardada exitosamente!');
+            cerrarModal();
+            cargarCalendario();
+        } else {
+            console.error('❌ El servidor respondió con error:', data);
+            alert('Error al guardar: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(err => {
+        console.error('❌ Error capturado:', err);
+        console.error('Stack:', err.stack);
+        alert('Error al guardar la nota: ' + err.message);
+    });
+}
+
+// Eliminar nota
+function eliminarNota() {
+    if (!confirm('¿Seguro que quieres eliminar esta nota?')) return;
+    
+    const notaId = document.getElementById('notaId').value;
+    
+    fetch(`/calendar/notes/${notaId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            cerrarModal();
+            cargarCalendario();
+        } else {
+            alert('Error al eliminar la nota');
+        }
+    })
+    .catch(err => {
+        console.error('Error eliminando nota:', err);
+        alert('Error al eliminar la nota');
+    });
+}
+
+// Formatear fecha para mostrar (EN ESPAÑOL)
+function formatearFecha(fecha) {
+    const partes = fecha.split('-');
+    const año = parseInt(partes[0]);
+    const mes = parseInt(partes[1]) - 1;
+    const dia = parseInt(partes[2]);
+    
+    const f = new Date(año, mes, dia);
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    
+    return `${diasSemana[f.getDay()]}, ${dia} de ${meses[mes]} de ${año}`;
+}
 </script>
 
 @endsection

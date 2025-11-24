@@ -334,6 +334,22 @@ Route::post('/verify-sensitive-access', function (Request $request) {
     return back()->withErrors(['sensitive_password' => 'Contraseña incorrecta']);
 })->middleware('auth')->name('verify.sensitive');
 
+
+
+// Rutas para el calendario (SIN autenticación)
+Route::prefix('calendar')->name('calendar.')->group(function () {
+    Route::get('/notes', [\App\Http\Controllers\CalendarNoteController::class, 'index'])->name('notes.index');
+    Route::post('/notes', [\App\Http\Controllers\CalendarNoteController::class, 'store'])->name('notes.store');
+    Route::put('/notes/{id}', [\App\Http\Controllers\CalendarNoteController::class, 'update'])->name('notes.update');
+    Route::delete('/notes/{id}', [\App\Http\Controllers\CalendarNoteController::class, 'destroy'])->name('notes.destroy');
+});
+
+
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | AUTH

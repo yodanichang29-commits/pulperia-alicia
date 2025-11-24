@@ -181,91 +181,83 @@ class CashMovementController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
-    {
-        // Validar datos
-        $validated = $request->validate([
-            'date' => 'required|date',
-            'type' => 'required|in:ingreso,egreso',
-            'category' => 'required|string',
-            'custom_category' => 'nullable|string|max:255',
-            'description' => 'required|string|max:500',
-            'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:efectivo,transferencia,tarjeta,otro',
-            'receipt_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB máximo
-            'notes' => 'nullable|string|max:1000',
-        ], [
-            'date.required' => 'La fecha es obligatoria.',
-            'type.required' => 'Debes seleccionar el tipo de movimiento.',
-            'category.required' => 'La categoría es obligatoria.',
-            'description.required' => 'La descripción es obligatoria.',
-            'amount.required' => 'El monto es obligatorio.',
-            'amount.min' => 'El monto debe ser mayor a 0.',
-            'payment_method.required' => 'El método de pago es obligatorio.',
-            'receipt_file.mimes' => 'El archivo debe ser PDF, JPG, JPEG o PNG.',
-            'receipt_file.max' => 'El archivo no debe superar los 5MB.',
-        ]);
+{
+    // Validar datos
+    $validated = $request->validate([
+        'date' => 'required|date',
+        'type' => 'required|in:ingreso,egreso',
+        'category' => 'required|string',
+        'custom_category' => 'nullable|string|max:255',
+        'description' => 'required|string|max:500',
+        'amount' => 'required|numeric|min:0.01',
+        'payment_method' => 'required|in:efectivo,transferencia,tarjeta,otro',
+        'receipt_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'notes' => 'nullable|string|max:1000',
+    ]);
 
-        // Si seleccionó "Otro", usar custom_category
-        if ($validated['category'] === 'Otro' && !empty($validated['custom_category'])) {
-            $validated['category'] = null;
-        } else {
-            $validated['custom_category'] = null;
-        }
-
-        // Subir archivo si existe
-        if ($request->hasFile('receipt_file')) {
-            $file = $request->file('receipt_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('receipts', $filename, 'public');
-            $validated['receipt_file'] = $path;
-        }
-
-      // Agregar usuario que lo creó
-$validated['created_by'] = Auth::id();
-
-// 🔹 Si el movimiento es en EFECTIVO y hay turno abierto,
-// lo vinculamos al turno para que afecte la caja física
-if ($validated['payment_method'] === 'efectivo') {
-    $currentShift = CashShift::openForUser(Auth::id())->first();
-
-    if ($currentShift) {
-        $validated['cash_shift_id'] = $currentShift->id;
+    /**
+     * 🔒 REGLA: "Ingreso al fondo inicial" SIEMPRE es en efectivo
+     * y NO debe permitir otro método de pago.
+     */
+    if (
+        $validated['type'] === 'ingreso' &&
+        $validated['category'] === 'Ingreso al fondo inicial'
+    ) {
+        $validated['payment_method'] = 'efectivo';
     }
+
+    /**
+     * 🔹 Si seleccionó categoría "Otro", usar custom_category
+     */
+    if ($validated['category'] === 'Otro' && !empty($validated['custom_category'])) {
+        $validated['category'] = null;
+    } else {
+        $validated['custom_category'] = null;
+    }
+
+    /**
+     * 🔹 Subir archivo si existe
+     */
+    if ($request->hasFile('receipt_file')) {
+        $file = $request->file('receipt_file');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('receipts', $filename, 'public');
+        $validated['receipt_file'] = $path;
+    }
+
+    /**
+     * 🔹 Usuario que lo creó
+     */
+    $validated['created_by'] = Auth::id();
+
+    /**
+     * 🔥 Vincular EFECTIVO con el turno abierto
+     * (para afectar la caja física del cierre del día)
+     */
+    if ($validated['payment_method'] === 'efectivo') {
+
+        // Pero si es Ingreso al fondo inicial → SOLO agregar al turno, pero NO suma al balance
+        // (la lógica financiera ya la hicimos en ShiftController)
+
+        $currentShift = CashShift::where('user_id', Auth::id())
+            ->whereNull('closed_at')
+            ->first();
+
+        if ($currentShift) {
+            $validated['cash_shift_id'] = $currentShift->id;
+        }
+    }
+
+    /**
+     * 🔹 Crear movimiento
+     */
+    CashMovement::create($validated);
+
+    return redirect()
+        ->route('cash-movements.index')
+        ->with('success', 'Movimiento registrado exitosamente.');
 }
 
-
-
-
-// Agregar usuario que lo creó
-$validated['created_by'] = Auth::id();
-
-// 👉 Si el movimiento se hizo en EFECTIVO y hay turno abierto,
-// lo ligamos a la caja del turno actual
-if ($validated['payment_method'] === 'efectivo') {
-    $currentShift = CashShift::where('user_id', Auth::id())
-        ->whereNull('closed_at')
-        ->first();
-
-    if ($currentShift) {
-        $validated['cash_shift_id'] = $currentShift->id;
-    }
-}
-
-// Crear el movimiento
-CashMovement::create($validated);
-
-
-
-
-
-// Crear el movimiento
-CashMovement::create($validated);
-
-
-        return redirect()
-            ->route('cash-movements.index')
-            ->with('success', 'Movimiento registrado exitosamente.');
-    }
 
     /**
      * Mostrar detalle de un movimiento de caja
@@ -361,6 +353,15 @@ CashMovement::create($validated);
             $path = $file->storeAs('receipts', $filename, 'public');
             $validated['receipt_file'] = $path;
         }
+
+        // 🔒 Forzar efectivo si es ingreso al fondo inicial
+if (
+    ($validated['type'] ?? null) === 'ingreso' &&
+    ($validated['category'] ?? null) === 'Ingreso al fondo inicial'
+) {
+    $validated['payment_method'] = 'efectivo';
+}
+
 
         // Actualizar el movimiento
         $cashMovement->update($validated);

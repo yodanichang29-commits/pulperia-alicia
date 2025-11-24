@@ -19,7 +19,7 @@
                   file:bg-indigo-50 file:text-indigo-700
                   hover:file:bg-indigo-100">
 
-    @if(!empty($product->image_path))
+    @if(!empty($product->photo))
       <label class="inline-flex items-center gap-2 ms-2">
         <input type="checkbox" name="remove_image" value="1"
                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
@@ -92,26 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <p class="text-xs text-gray-500 mt-1">Cuánto % le subes al costo de compra</p>
   </div>
 
-  <div>
-    <label class="block text-sm font-medium text-gray-700">Unidad</label>
-    <input name="unit" type="text" placeholder="unidad, litro, kg, paquete…"
-           value="{{ old('unit', $product->unit) }}"
-           class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-  </div>
-
-  <div>
-    <label class="block text-sm font-medium text-gray-700">Proveedor</label>
-    <select name="provider_id"
-            class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-      <option value="">— Sin proveedor —</option>
-      @foreach($providers as $prov)
-        <option value="{{ $prov->id }}" {{ old('provider_id', $product->provider_id) == $prov->id ? 'selected' : '' }}>
-          {{ $prov->name }}
-        </option>
-      @endforeach
-    </select>
-    @error('provider_id')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-  </div>
+ 
 
   <div>
     <label class="block text-sm font-medium text-gray-700">Stock</label>

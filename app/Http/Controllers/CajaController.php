@@ -32,7 +32,7 @@ class CajaController extends Controller
             'products.id',
             'products.name',
             'products.price',
-            'products.photo as image_path',
+            'products.photo',
             'products.category'
         )
         ->leftJoin('sale_items', function($join) use ($mesActual) {
