@@ -121,6 +121,25 @@ document.addEventListener('DOMContentLoaded', () => {
            class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
   </div>
 
+  {{-- Selector de Categoría --}}
+<div>
+  <label class="block text-sm font-medium text-gray-700">Categoría</label>
+  <select name="category_id" 
+          id="category_id"
+          class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 @error('category_id') border-red-500 @enderror">
+    <option value="">Sin categoría</option>
+    @foreach($categories as $cat)
+      <option value="{{ $cat->id }}" {{ old('category_id', $product->category_id) == $cat->id ? 'selected' : '' }}>
+        {{ $cat->name }}
+      </option>
+    @endforeach
+  </select>
+  @error('category_id')
+    <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+  @enderror
+  <p class="text-xs text-gray-500 mt-1">Selecciona la categoría para agrupar en reportes</p>
+</div>
+
   <div class="flex items-center gap-2">
     <input id="active" name="active" type="checkbox" value="1"
            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"

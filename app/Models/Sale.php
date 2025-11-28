@@ -21,6 +21,8 @@ class Sale extends Model
         'due_date',
         'cash_received',
         'cash_change',
+           'transfer_client_name',
+    'transfer_bank',
     ];
 
 

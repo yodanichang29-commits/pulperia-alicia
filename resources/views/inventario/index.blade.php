@@ -2,15 +2,23 @@
     <div x-data="{ openImage:false, imgSrc:'' }"
          @open-image.window="imgSrc = $event.detail; openImage = true">
 
-        <x-slot name="header">
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800">📦 Inventario</h2>
-                <a href="{{ route('productos.create') }}"
-                   class="inline-flex items-center px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                    Nuevo
-                </a>
-            </div>
-        </x-slot>
+      <x-slot name="header">
+    <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            📦 Inventario
+        </h2>
+        <div class="flex gap-3">
+            <a href="{{ route('categorias.index') }}" 
+               class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold">
+                🏷️ Categorías
+            </a>
+            <a href="{{ route('productos.create') }}" 
+               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+                Nuevo
+            </a>
+        </div>
+    </div>
+</x-slot>
 
         <div class="max-w-7xl mx-auto p-4">
             {{-- Buscador en tiempo real --}}

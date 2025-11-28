@@ -16,5 +16,13 @@ class SaleItem extends Model
     ];
 
     public function sale(){ return $this->belongsTo(Sale::class); }
+
+
+     // 👇 ESTA ES LA RELACIÓN QUE FALTA
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+        // si tu columna se llama distinto, cámbiala aquí
+    }
 }
 

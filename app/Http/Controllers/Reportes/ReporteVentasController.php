@@ -29,24 +29,41 @@ public function show($id)
         ? "strftime('%H:%M:%S', s.created_at)"
         : "DATE_FORMAT(s.created_at, '%H:%i:%s')";
 
-    // Obtener la venta
-    $venta = \DB::table('sales as s')
-        ->leftJoin('users as u', 'u.id', '=', 's.user_id')
-        ->leftJoin('clients as c', 'c.id', '=', 's.client_id')
-        ->where('s.id', $id)
-        ->selectRaw("
-            s.*,
-            {$fechaSql} as fecha,
-            {$horaSql} as hora,
-            COALESCE(u.name,'-') as cajero,
-            COALESCE(c.name,'-') as cliente
-        ")
-        ->first();
+    // ✅ CARGAR LA VENTA CON LA RELACIÓN DEL CLIENTE
+    $ventaModel = \App\Models\Sale::with('client')->findOrFail($id);
+
+   // Obtener los datos para la vista (usando query builder)
+$venta = \DB::table('sales as s')
+    ->leftJoin('users as u', 'u.id', '=', 's.user_id')
+    ->leftJoin('clients as c', 'c.id', '=', 's.client_id')
+    ->where('s.id', $id)
+   ->selectRaw("
+    s.id,
+    s.user_id,
+    s.payment,
+    s.subtotal,
+    s.surcharge,
+    s.total,
+    s.cash_received,
+    s.cash_change,
+    s.client_id,
+    s.due_date,
+    s.transfer_client_name,
+    s.transfer_bank,
+    {$fechaSql} as fecha,
+    {$horaSql} as hora,
+    COALESCE(u.name,'-') as cajero,
+ COALESCE(c.name, s.transfer_client_name, '-') as cliente
+")
+    ->first();
 
     // Si no existe la venta, devolver error 404
     if (!$venta) {
         abort(404, 'Venta no encontrada');
     }
+
+    // ✅ AGREGAR LA RELACIÓN DEL CLIENTE AL OBJETO DE VISTA
+    $venta->client = $ventaModel->client;
 
     // Obtener los productos vendidos en esa venta
     $items = \DB::table('sale_items as si')
@@ -64,8 +81,6 @@ public function show($id)
     // Enviar los datos a la vista
     return view('reportes.ventas.venta_show', compact('venta', 'items'));
 }
-
-
 
 
 
@@ -111,7 +126,7 @@ public function detalle(Request $r)
             s.total,
             s.cash_received,
             s.cash_change,
-            COALESCE(c.name,'-')  as cliente
+         COALESCE(c.name, s.transfer_client_name, '-') as cliente
         ")
         ->orderBy('s.created_at', 'asc')
         ->get();

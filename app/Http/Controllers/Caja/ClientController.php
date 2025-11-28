@@ -50,4 +50,25 @@ class ClientController extends Controller
             'client' => $client,
         ], 201);
     }
+
+
+
+public function search(Request $request)
+{
+    $query = $request->get('q', '');
+    
+    if (strlen($query) < 2) {
+        return response()->json([]);
+    }
+    
+    $clients = \App\Models\Client::where('name', 'like', '%' . $query . '%')
+        ->orWhere('phone', 'like', '%' . $query . '%')
+        ->orderBy('name')
+        ->limit(10)
+        ->get(['id', 'name', 'phone']);
+    
+    return response()->json($clients);
+}
+
+
 }

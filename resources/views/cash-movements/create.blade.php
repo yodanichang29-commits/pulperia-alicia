@@ -170,6 +170,28 @@
                             @enderror
                         </div>
 
+                        {{-- FUENTE DE EFECTIVO (solo si es efectivo) --}}
+<div x-show="$el.closest('form').querySelector('[name=payment_method]').value === 'efectivo'" x-cloak>
+    <label class="block text-sm font-medium text-gray-700 mb-1">💰 ¿De dónde sale el dinero? *</label>
+    <select name="source" 
+            class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
+        <option value="">-- Seleccionar fuente --</option>
+        <option value="fondo" {{ old('source') === 'fondo' ? 'selected' : '' }}>
+            🏦 Fondo inicial (dinero personal invertido)
+        </option>
+        <option value="caja_turno" {{ old('source', 'caja_turno') === 'caja_turno' ? 'selected' : '' }}>
+            💵 Caja del turno actual (dinero de ventas)
+        </option>
+    </select>
+    <p class="mt-1 text-xs text-gray-500">
+        <strong>Fondo:</strong> No afecta el turno actual. 
+        <strong>Caja:</strong> Se descuenta del cierre de caja.
+    </p>
+    @error('source')
+        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+    @enderror
+</div>
+
                         {{-- COMPROBANTE (opcional) --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📎 Comprobante (opcional)</label>

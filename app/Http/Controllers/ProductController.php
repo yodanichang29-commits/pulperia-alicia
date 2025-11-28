@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
             'purchase_price' => ['nullable','numeric','min:0'],
            
             'provider_id'    => ['nullable','integer','exists:providers,id'],
+                    'category_id'    => ['nullable','integer','exists:categories,id'], // ← AGREGAR ESTO
             'stock'          => ['required','integer','min:0'],
             'min_stock'      => ['required','integer','min:0'],
             'expires_at'     => ['nullable','date'],
@@ -49,6 +50,7 @@ use Illuminate\Support\Facades\Storage;
             'price'          => ['required','numeric','min:0'],
             'purchase_price' => ['nullable','numeric','min:0'],
             'provider_id'    => ['nullable','integer','exists:providers,id'],
+               'category_id'    => ['nullable','integer','exists:categories,id'], // ← AGREGAR ESTO
             'stock'          => ['required','integer','min:0'],
             'min_stock'      => ['required','integer','min:0'],
             'expires_at'     => ['nullable','date'],
@@ -83,18 +85,19 @@ use Illuminate\Support\Facades\Storage;
 
 
 
-
 public function create()
 {
     $product   = new Product(['active' => true, 'stock' => 0, 'min_stock' => 0]);
     $providers = Provider::orderBy('name')->get(['id','name']);
-    return view('inventario.productos.create', compact('product','providers'));
+    $categories = \App\Models\Category::active()->ordered()->get(['id','name']); // ← AGREGAR ESTO
+    return view('inventario.productos.create', compact('product','providers','categories')); // ← MODIFICAR
 }
 
 public function edit(Product $product)
 {
     $providers = Provider::orderBy('name')->get(['id','name']);
-    return view('inventario.productos.edit', compact('product','providers'));
+    $categories = \App\Models\Category::active()->ordered()->get(['id','name']); // ← AGREGAR ESTO
+    return view('inventario.productos.edit', compact('product','providers','categories')); // ← MODIFICAR
 }
 
 

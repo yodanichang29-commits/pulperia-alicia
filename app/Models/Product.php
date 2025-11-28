@@ -25,8 +25,8 @@ protected static function booted()
     // Campos que se pueden guardar directamente
      protected $fillable = [
         'name', 'barcode', 'price', 'purchase_price', 'photo',
-        'expires_at', 'provider_id', 'category', 'stock', 'min_stock', 'active'
-    ];
+        'expires_at', 'provider_id',     'category_id', 'stock', 'min_stock', 'active'
+    ];  
 
     // Relación con movimientos de inventario
     public function movements()
@@ -66,6 +66,14 @@ public function getImageUrlAttribute()
     public function getProfitPerUnitAttribute(): float
     {
         return round(($this->price - $this->purchase_price), 2);
+
     }
+
+
+// Relación: un producto pertenece a una categoría
+public function category()
+{
+    return $this->belongsTo(Category::class);
+}
 
 }

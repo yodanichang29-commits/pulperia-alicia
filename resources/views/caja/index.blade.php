@@ -50,9 +50,13 @@
           <button @click="closeModal=true; refreshSummary()" class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-black">
             Cerrar turno
           </button>
+        
         </div>
       </div>
     </template>
+
+ 
+    
 
     {{-- Modal Abrir turno --}}
  {{-- Modal Abrir turno --}}
@@ -113,20 +117,6 @@
 
 
 
-<!-- ============================================ -->
-<!-- ✅ NUEVA LÍNEA: DEVOLUCIONES -->
-<!-- ============================================ -->
-<div 
-  x-show="Number(summary.devoluciones ?? 0) > 0" 
-  class="flex justify-between text-sm py-2 border-t mt-2 pt-2"
->
-  <span class="font-semibold text-red-600 uppercase">
-    🔄 DEVOLUCIONES
-  </span>
-  <span class="font-semibold text-red-600 tabular-nums">
-    L -<span x-text="Number(summary.devoluciones ?? 0).toFixed(2)"></span>
-  </span>
-</div>
 
 
 
@@ -232,15 +222,43 @@
 </div>
           <label class="block text-sm text-gray-600 mb-1">Notas (opcional)</label>
           <textarea x-model="form.notes" class="w-full rounded-lg border px-3 py-2 mb-4" rows="2"></textarea>
-          <div class="flex justify-end gap-2">
-            <button @click="closeModal=false" class="px-3 py-2 rounded-lg border">Cancelar</button>
-<button 
-  :disabled="loading || !form.closing_cash_count || form.closing_cash_count < 0" 
-  @click="closeShift" 
-  class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
-  <span x-show="!loading">🔒 Confirmar cierre</span>
-  <span x-show="loading">Cerrando...</span>
-</button>          </div>
+
+
+{{-- Checkbox para afectar balance (SEPARADO) --}}
+<div class="mt-4 mb-4 p-4 bg-gray-50 border-2 border-gray-300 rounded-xl">
+    <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" 
+               x-model="affectBalance" 
+               id="affect_balance"
+               class="mt-1 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+        <div class="flex-1">
+            <span class="font-semibold text-gray-800 block mb-1">
+                📊 Registrar faltante/sobrante en el Balance General
+            </span>
+            <p class="text-xs text-gray-600 leading-relaxed">
+                <strong>Si marcas esto:</strong> La diferencia de caja aparecerá en tus reportes de finanzas como ingreso (si sobró) o gasto (si faltó).
+                <br>
+                <strong>Si NO lo marcas:</strong> La diferencia solo quedará registrada en este turno para tu control interno.
+            </p>
+        </div>
+    </label>
+</div>
+
+{{-- Botones de acción (SEPARADOS) --}}
+<div class="flex justify-end gap-3 pt-4 border-t">
+    <button @click="closeModal=false" 
+            class="px-6 py-3 rounded-xl border-2 border-gray-300 hover:bg-gray-50 font-semibold transition">
+        Cancelar
+    </button>
+    <button 
+        :disabled="loading || !form.closing_cash_count || form.closing_cash_count < 0" 
+        @click="closeShift" 
+        class="px-6 py-3 rounded-xl bg-slate-800 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg transition">
+        <span x-show="!loading">🔒 Confirmar cierre</span>
+        <span x-show="loading">⏳ Cerrando...</span>
+    </button>
+   
+</div>
         </div>
       </div>
     </template>
@@ -255,6 +273,7 @@
       form: { opening_float:'', notes:'', closing_cash_count:'' },
       openModal:false, closeModal:false,
       loading:false, lastUpdated:null,
+         affectBalance: false,
 
       methodLabel(m) {
         const map = {
@@ -267,13 +286,23 @@
         return map[k] ?? k.toUpperCase();
       },
 
-      init(){
-        this.fetchCurrent();
-        window.addEventListener('sale:registered', async () => {
-          await this.fetchCurrent(); await this.refreshSummary();
-        });
-        window.addEventListener('keydown', e => { if (e.key.toLowerCase()==='r') this.refreshAll(); });
-      },
+  init(){
+  this.fetchCurrent();
+  
+  window.addEventListener('sale:registered', async () => {
+    await this.fetchCurrent(); 
+    await this.refreshSummary();
+  });
+  
+  window.addEventListener('keydown', e => { 
+    if (e.key.toLowerCase()==='r') this.refreshAll(); 
+  });
+  
+  window.addEventListener('open-new-shift', () => {
+    this.openModal = true;
+    this.$nextTick(() => this.$refs.openingFloatInput?.focus());
+  });
+},
 
       toast(msg){
         const id = 't-'+Date.now();
@@ -305,9 +334,22 @@
           });
           const j = await r.json().catch(()=>({shift:null}));
           this.state.current = j?.shift ?? null;
+
+   // 🔔 Avisar globalmente al POS si hay turno o no
+    window.dispatchEvent(new CustomEvent('shift:changed', {
+      detail: { shift: this.state.current }
+    }));
+
         }catch(e){
           console.error('fetchCurrent error', e);
           this.state.current = null;
+
+
+
+              // También avisar que ya no hay turno si hubo error
+    window.dispatchEvent(new CustomEvent('shift:changed', {
+      detail: { shift: null }
+    }));
         }
       },
 
@@ -377,43 +419,62 @@
 },
 
       async closeShift(){
-        this.loading = true;
-        try{
-          const r = await fetch('{{ route('caja.shift.close') }}', {
-            method:'POST',
-            headers:{
-              'Content-Type':'application/json',
-              'Accept':'application/json',
-              'X-Requested-With':'XMLHttpRequest',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-              'Cache-Control':'no-store'
-            },
-            credentials:'same-origin',
-            cache:'no-store',
-            body: JSON.stringify({
-              closing_cash_count: Number(this.form.closing_cash_count||0),
-              notes: this.form.notes||''
-            })
-          });
-
-          const text = await r.text(); let data; try{ data=JSON.parse(text);}catch{}
-          if(!r.ok){ throw new Error((data&&data.message)||text||'Error al cerrar turno'); }
-
-          this.state.current = null;
-          this.closeModal = false;
-          this.form.closing_cash_count = '';
-          this.form.notes = '';
-          this.summary = { by_payment:{}, expected_cash:0 };
-
-          await this.fetchCurrent();
-          alert('Turno cerrado');
-        }catch(e){
-          alert(e.message || 'Error al cerrar turno');
-          console.error(e);
-        }finally{
-          this.loading = false;
-        }
+  this.loading = true;
+  try{
+    const r = await fetch('{{ route('caja.shift.close') }}', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        'X-Requested-With':'XMLHttpRequest',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'Cache-Control':'no-store'
       },
+      credentials:'same-origin',
+      cache:'no-store',
+      body: JSON.stringify({
+        closing_cash_count: Number(this.form.closing_cash_count||0),
+        notes: this.form.notes||'',
+        affect_balance: this.affectBalance || false 
+      })
+    });
+
+    const text = await r.text(); 
+    let data; 
+    try{ data=JSON.parse(text); } catch{}
+    
+    if(!r.ok){ 
+      throw new Error((data&&data.message)||text||'Error al cerrar turno'); 
+    }
+
+    // ✅ CERRAR MODAL DE CIERRE Y MOSTRAR MODAL DE RESUMEN
+    this.closeModal = false;
+    this.state.current = null;
+    
+    // Resetear formulario
+    this.form.closing_cash_count = '';
+    this.form.notes = '';
+    this.affectBalance = false;
+    this.summary = { by_payment:{}, expected_cash:0 };
+    
+    await this.fetchCurrent();
+    
+    // ✅ DISPARAR EVENTO PARA MOSTRAR MODAL DE RESUMEN
+    window.dispatchEvent(new CustomEvent('show-closed-summary', { 
+      detail: data 
+    }));
+    
+window.location.href = data.redirect_url;
+
+
+
+  }catch(e){
+    alert(e.message || 'Error al cerrar turno');
+    console.error(e);
+  }finally{
+    this.loading = false;
+  }
+},
     }
   }
   </script>
@@ -422,27 +483,30 @@
   <div x-data="pos()" x-init="init()" @close-new-client.window="openNewClient=false" class="bg-gray-100 min-h-screen py-4">
 
     {{-- Categorías + búsqueda --}}
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-2 mb-4 px-4">
-      <button @click="setCat(null)"
-              :class="activeCat===null ? 'bg-blue-700 text-white shadow' : 'bg-white text-gray-800 border border-blue-200'"
-              class="px-4 py-2 rounded-full font-semibold">
-        Todo
-      </button>
+<div class="max-w-7xl mx-auto flex flex-wrap items-center gap-2 mb-4 px-4">
+  <button @click="setCat(null)"
+          :class="activeCat===null ? 'bg-blue-700 text-white shadow' : 'bg-white text-gray-800 border border-blue-200'"
+          class="px-4 py-2 rounded-full font-semibold">
+    Todo
+  </button>
 
-      @foreach($categories as $cat)
-        <button @click="setCat(@js($cat))"
-                :class="activeCat===@js($cat) ? 'bg-blue-700 text-white shadow-lg' : 'bg-white text-gray-800 border border-blue-200'"
-                class="px-4 py-2 rounded-full font-semibold transition">
-          {{ $cat }}
-        </button>
-      @endforeach
+  @foreach($categories as $cat)
+    <button @click="setCat({{ $cat->id }})"
+            :class="activeCat==={{ $cat->id }} ? 'bg-blue-700 text-white shadow-lg' : 'bg-white text-gray-800 border border-blue-200'"
+            class="px-4 py-2 rounded-full font-semibold transition">
+      {{ $cat->name }}
+    </button>
+  @endforeach
 
-      <div class="ml-auto">
-        <input x-model="search" type="search" placeholder="Buscar productos…"
-               class="rounded-xl border border-blue-300 px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-               inputmode="search">
-      </div>
-    </div>
+  <div class="ml-auto">
+    <input x-model="search" type="search" placeholder="Buscar productos…"
+           class="rounded-xl border border-blue-300 px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+           inputmode="search">
+  </div>
+</div>
+
+     
+         
 
     {{-- BOTONES DE GESTIÓN DE VENTAS --}}
     <div class="max-w-7xl mx-auto px-4 mb-4">
@@ -547,6 +611,85 @@
             <button :class="payBtn('credit')"   class="py-3 rounded-xl font-semibold" @click="payment='credit'">Crédito</button>
           </div>
 
+
+
+        {{-- CAMPOS PARA TRANSFERENCIA --}}
+<div x-show="payment==='transfer'" x-cloak class="mt-4 space-y-3 bg-amber-50 border-2 border-amber-300 rounded-xl p-4" x-transition.opacity>
+  <div class="flex items-center gap-2 mb-2">
+    <span class="text-lg">🏦</span>
+    <span class="font-semibold text-gray-800">Datos de la transferencia</span>
+  </div>
+
+  {{-- Búsqueda de cliente con botón Nuevo --}}
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+      Nombre del cliente que transfirió <span class="text-red-500">*</span>
+    </label>
+    <div class="grid grid-cols-[1fr_auto] gap-2">
+      <div class="relative">
+        <input 
+          x-model="transferClientQuery"
+          @input="searchTransferClients()"
+          @keydown.enter.prevent="if(!transferClient && transferClientQuery.trim()) { openNewClientForTransfer(); }"
+          type="text"
+          placeholder="Buscar por nombre o teléfono..."
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring focus:ring-amber-200"
+          inputmode="search">
+        
+        {{-- Sugerencias de clientes --}}
+        <div x-show="transferClientResults.length > 0" x-cloak 
+             class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          <template x-for="c in transferClientResults" :key="c.id">
+            <button type="button"
+                    class="w-full text-left px-3 py-2 hover:bg-amber-50 transition"
+                    @click="transferClient = c; transferClientQuery = c.name; transferClientResults = []">
+              <div class="font-medium text-gray-800" x-text="c.name"></div>
+              <div class="text-xs text-gray-500" x-text="c.phone || 'Sin teléfono'"></div>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      {{-- Botón Nuevo --}}
+      <button type="button"
+              @click="openNewClientForTransfer()"
+              class="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 font-medium whitespace-nowrap">
+        Nuevo
+      </button>
+    </div>
+
+    {{-- Cliente seleccionado --}}
+    <template x-if="transferClient">
+      <div class="mt-2 text-sm text-gray-700 bg-white rounded-lg p-2 border border-amber-200">
+        ✅ Cliente: <span class="font-semibold" x-text="transferClient.name"></span>
+        <span class="text-xs text-gray-500" x-text="transferClient.phone ? ' · '+transferClient.phone : ''"></span>
+        <button type="button" class="text-amber-600 ml-2 hover:text-amber-700" @click="transferClient=null; transferClientQuery=''">
+          Cambiar
+        </button>
+      </div>
+    </template>
+
+    <p class="text-xs text-gray-500 mt-1">💡 Empieza a escribir para buscar o presiona "Nuevo"</p>
+  </div>
+
+  {{-- Selector de banco --}}
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+      Banco <span class="text-red-500">*</span>
+    </label>
+    <select x-model="transferBank"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring focus:ring-amber-200">
+      <option value="">Selecciona el banco...</option>
+      <option value="BAC">BAC</option>
+      <option value="Occidente">Banco de Occidente</option>
+      <option value="Atlantida">Atlántida</option>
+      <option value="Ficohsa">Ficohsa</option>
+      <option value="Cuscatlan">Cuscatlán</option>
+      <option value="Banpais">Banpaís</option>
+    </select>
+  </div>
+</div>
+
           <div x-show="payment==='card'" x-cloak class="mt-1 flex items-center gap-3" x-transition.opacity>
             <label class="text-sm text-gray-600">Comisión tarjeta (%)</label>
             <input type="number" min="0" step="0.1" x-model.number="feePct"
@@ -557,58 +700,90 @@
             </div>
           </div>
 
-          <template x-if="payment==='credit'">
-            <div class="mt-4 space-y-3" x-transition.opacity>
-              <div class="grid grid-cols-[1fr_auto] gap-2">
-                <input x-model="clientQuery"
-                       @input.debounce.300ms="searchClients"
-                       type="search"
-                       placeholder="Buscar cliente (nombre o teléfono)"
-                       class="w-full rounded-lg border px-3 py-2"
-                       inputmode="search">
-                <button type="button"
-                        @click="openNewClient=true; $nextTick(()=>$refs.cliname?.focus())"
-                        class="px-3 py-2 rounded-lg border bg-white shadow-sm hover:bg-gray-50">
-                  Nuevo
-                </button>
-                <button type="button"
-                  @click="$dispatch('abono-open')"
-                  class="px-4 py-2 rounded-xl bg-amber-600 text-white font-semibold">
-                  Cobrar abono
-                </button>
-              </div>
+         <template x-if="payment==='credit'">
+    <div class="mt-4 space-y-3" x-transition.opacity>
+      <div class="grid grid-cols-[1fr_auto] gap-2">
+        {{-- Campo de búsqueda con sugerencias --}}
+        <div class="relative">
+          <input x-model="clientQuery"
+                 @input="searchClients()"
+                 @keydown.enter.prevent="if(!client && clientQuery.trim()) { openNewClientForCredit(); }"
+                 type="search"
+                 placeholder="Buscar cliente (nombre o teléfono)"
+                 class="w-full rounded-lg border px-3 py-2"
+                 inputmode="search">
+          
+          {{-- Sugerencias de clientes --}}
+          <div x-show="clientResults.length > 0" x-cloak 
+               class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            <template x-for="c in clientResults" :key="c.id">
+              <button type="button"
+                      class="w-full text-left px-3 py-2 hover:bg-blue-50 transition"
+                      @click="client = c; clientQuery = c.name; clientResults = []">
+                <div class="font-medium text-gray-800" x-text="c.name"></div>
+                <div class="text-xs text-gray-500" x-text="c.phone || 'Sin teléfono'"></div>
+              </button>
+            </template>
+          </div>
+        </div>
 
-              <div x-show="clientResults.length" x-cloak class="bg-white border rounded-lg max-h-48 overflow-auto">
-                <template x-for="c in clientResults" :key="c.id">
-                  <button class="w-full text-left px-3 py-2 hover:bg-blue-50"
-                          @click="client=c; clientResults=[]; clientQuery=''">
-                    <span class="font-medium" x-text="c.name"></span>
-                    <span class="text-xs text-gray-500 ml-2" x-text="c.phone || ''"></span>
-                  </button>
-                </template>
-              </div>
+        {{-- Botón Nuevo --}}
+        <button type="button"
+                @click="openNewClientForCredit()"
+                class="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 font-medium whitespace-nowrap">
+          Nuevo
+        </button>
+      </div>
 
-              <template x-if="client">
-                <div class="text-sm text-gray-700">
-                  Cliente: <span class="font-semibold" x-text="client.name"></span>
-                  <span class="text-xs text-gray-500" x-text="client.phone ? ' · '+client.phone : ''"></span>
-                  <button class="text-blue-600 ml-2" @click="client=null">Cambiar</button>
-                </div>
-              </template>
+      {{-- Botón Cobrar Abono (en otra fila) --}}
+      <button type="button"
+              @click="$dispatch('abono-open')"
+              class="w-full px-4 py-2 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700">
+        Cobrar abono
+      </button>
 
-              <div class="flex items-center gap-3">
-                <label class="text-sm text-gray-600">Vence:</label>
-                <input type="date" x-model="dueDate" class="rounded-lg border px-3 py-2">
-              </div>
-            </div>
-          </template>
-
-          <button
-            class="mt-4 w-full py-4 rounded-2xl bg-blue-600 text-white text-xl font-extrabold tracking-wide shadow-lg hover:bg-blue-700 transition disabled:bg-blue-300"
-            :disabled="payment==='cash' && !hasShift"
-            @click="payment==='cash' ? openCashModal() : pay()">
-            💰 Cobrar <span x-text="money(grandTotal())"></span>
+      {{-- Cliente seleccionado --}}
+      <template x-if="client">
+        <div class="text-sm text-gray-700 bg-white rounded-lg p-2 border border-blue-200">
+          ✅ Cliente: <span class="font-semibold" x-text="client.name"></span>
+          <span class="text-xs text-gray-500" x-text="client.phone ? ' · '+client.phone : ''"></span>
+          <button type="button" class="text-blue-600 ml-2 hover:text-blue-700" @click="client=null; clientQuery=''; clientResults=[]">
+            Cambiar
           </button>
+        </div>
+      </template>
+
+      <p class="text-xs text-gray-500">💡 Empieza a escribir para buscar o presiona "Nuevo"</p>
+
+      {{-- Fecha de vencimiento --}}
+      <div class="flex items-center gap-3">
+        <label class="text-sm text-gray-600">Vence:</label>
+        <input type="date" x-model="dueDate" class="rounded-lg border px-3 py-2">
+      </div>
+    </div>
+  </template>
+
+<button
+  class="mt-4 w-full py-4 rounded-2xl bg-blue-600 text-white text-xl font-extrabold tracking-wide shadow-lg hover:bg-blue-700 transition disabled:bg-blue-300 disabled:cursor-not-allowed"
+  :disabled="!cart.length || !hasShift"
+  @click="payment === 'cash' ? openCashModal() : pay()"
+>
+  <!-- 1) Carrito vacío -->
+  <span x-show="!cart.length">
+    🛒 Agrega productos
+  </span>
+
+  <!-- 2) Hay productos, pero sin turno -->
+  <span x-show="cart.length && !hasShift">
+    ⚠️ Abre un turno para poder cobrar
+  </span>
+
+  <!-- 3) Hay productos y hay turno -->
+  <span x-show="cart.length && hasShift">
+    💰 Cobrar <span x-text="money(grandTotal())"></span>
+  </span>
+</button>
+
 
         </div>
       </div>
@@ -618,8 +793,8 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           @foreach($products as $p)
             <button
-              @click="add({ id: {{ $p->id }}, name: @js($p->name), price: {{ $p->price }}, cat: @js($p->category) })"
-              x-show="showProduct(@js($p->category), @js($p->name))"
+            @click="add({ id: {{ $p->id }}, name: @js($p->name), price: {{ $p->price }}, cat: {{ $p->category_id ?? 'null' }} })"
+x-show="showProduct({{ $p->category_id ?? 'null' }}, @js($p->name))"
               class="relative group rounded-2xl bg-white border border-gray-200 hover:border-blue-400 overflow-hidden text-left shadow hover:shadow-lg transition">
 
 
@@ -642,15 +817,23 @@
                   >
                 </div>
               </div>
-              <div class="p-3">
-                <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-blue-100 text-blue-800 uppercase tracking-wide">
-                  {{ $p->category }}
-                </span>
-                <div class="mt-1 h-12 font-semibold text-gray-800 leading-snug line-clamp-2">
-                  {{ $p->name }}
-                </div>
-                <div class="mt-1 text-lg font-bold text-blue-700">L {{ number_format($p->price,2) }}</div>
-              </div>
+             <div class="p-3">
+ @if($p->category)
+  <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-blue-100 text-blue-800 uppercase tracking-wide">
+    {{ is_object($p->category) ? $p->category->name : $p->category }}
+  </span>
+@else
+  <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-gray-100 text-gray-600 uppercase tracking-wide">
+    Sin categoría
+  </span>
+@endif
+  
+  <div class="mt-1 h-12 font-semibold text-gray-800 leading-snug line-clamp-2">
+    {{ $p->name }}
+  </div>
+  <div class="mt-1 text-lg font-bold text-blue-700">L {{ number_format($p->price,2) }}</div>
+</div>
+ 
             </button>
           @endforeach
         </div>
@@ -1089,29 +1272,37 @@
       return {
         hasShift: false,
 
-        async refreshShift(){
-          try{
-            const r = await fetch('{{ route('caja.shift.current') }}', {
-              headers:{
-                'Accept':'application/json',
-                'X-Requested-With':'XMLHttpRequest',
-                'Cache-Control':'no-store'
-              },
-              credentials:'same-origin',
-              cache:'no-store'
-            });
-            const j = await r.json().catch(()=>({shift:null}));
-            this.hasShift = !!j.shift;
-          }catch{
-            this.hasShift = false;
-          }
-        },
+      async refreshShift(){
+  try{
+    const r = await fetch('{{ route('caja.shift.current') }}', {
+      headers:{
+        'Accept':'application/json',
+        'X-Requested-With':'XMLHttpRequest',
+        'Cache-Control':'no-store'
+      },
+      credentials:'same-origin',
+      cache:'no-store'
+    });
+    const j = await r.json().catch(()=>({shift:null}));
+    this.hasShift = !!j.shift;
+    console.log('🔍 hasShift:', this.hasShift, 'Shift data:', j.shift); // Debug
+  }catch(e){
+    console.error('Error refreshShift:', e);
+    this.hasShift = false;
+  }
+},
 
         activeCat: null,
         search: '',
         cart: [],
         payment: 'cash',
         feePct: 0,
+// Transferencias
+transferClient: null,
+transferClientQuery: '',
+transferClientResults: [],
+transferBank: '',
+_transferClientTimer: null,
 
         client: null,
         clientQuery: '',
@@ -1180,26 +1371,53 @@
         scanTimer: null,
         _clientTimer: null,
 
-        init(){
-          window.addEventListener('keydown', this.catchScan.bind(this));
-          this.$watch('openNewClient', open => {
-            document.body.style.overflow = open ? 'hidden' : '';
-          });
-          
-          this.refreshShift();
-          window.addEventListener('focus', () => this.refreshShift());
-          
-          this.loadPendingSalesCount();
-          window.posInstance = this;
-        },
+      async init(){
+  console.log('🚀 Inicializando POS...');
+  
+
+
+  // 👉 REGISTRAR INSTANCIA GLOBAL
+  window.posInstance = this;
+
+
+  // ✅ Verificar si hay turno abierto
+  await this.refreshShift();
+  console.log('✅ hasShift:', this.hasShift);
+
+    // 🔔 Escuchar cambios de turno desde el componente shift()
+  window.addEventListener('shift:changed', (e) => {
+    const shift = e.detail?.shift || null;
+    this.hasShift = !!shift;
+    console.log('🔄 shift:changed → hasShift =', this.hasShift);
+  });
+  
+  // Listener para ventas registradas
+  window.addEventListener('sale:registered', async () => {
+    await this.refreshShift();
+  });
+  
+  // Atajo de teclado para refrescar
+  window.addEventListener('keydown', e => { 
+    if (e.key.toLowerCase()==='r') this.refreshShift(); 
+  });
+  
+  // Cargar ventas en espera
+  this.loadPendingSalesCount();
+  
+  console.log('✅ POS inicializado');
+},
 
         setCat(id){ this.activeCat = id },
-        showProduct(cat, name){
-          if(this.activeCat && this.activeCat !== cat) return false;
-          if(this.search?.trim().length)
-            return name.toLowerCase().includes(this.search.toLowerCase());
-          return true;
-        },
+       showProduct(categoryId, name){
+  // Si hay categoría activa, filtrar por ID de categoría
+  if(this.activeCat !== null && this.activeCat !== categoryId) return false;
+  
+  // Si hay búsqueda, filtrar por nombre
+  if(this.search?.trim().length)
+    return name.toLowerCase().includes(this.search.toLowerCase());
+  
+  return true;
+},
 
         add(p){
           const i = this.cart.findIndex(x=>x.id===p.id);
@@ -1238,48 +1456,130 @@
           setTimeout(()=>document.getElementById(id)?.remove(), 900);
         },
 
-        async searchClients(){
-          if(this._clientTimer) clearTimeout(this._clientTimer);
-          this._clientTimer = setTimeout(async ()=>{
-            if(!this.clientQuery){ this.clientResults=[]; return; }
-            try{
-              const res = await fetch(`{{ route('caja.clients') }}?q=${encodeURIComponent(this.clientQuery)}`);
-              this.clientResults = res.ok ? await res.json() : [];
-            }catch{ this.clientResults=[]; }
-          }, 250);
-        },
+    async searchTransferClients(){
+  if(this._transferClientTimer) clearTimeout(this._transferClientTimer);
+  
+  this._transferClientTimer = setTimeout(async ()=>{
+    const query = this.transferClientQuery?.trim();
+    
+    if(!query || query.length < 2){ 
+      this.transferClientResults = []; 
+      return; 
+    }
+    
+    try{
+      const res = await fetch(`/api/clients/search?q=${encodeURIComponent(query)}`);
+      if(res.ok){
+        this.transferClientResults = await res.json();
+        console.log('Clientes encontrados:', this.transferClientResults); // Debug
+      } else {
+        this.transferClientResults = [];
+      }
+    }catch(e){ 
+      console.error('Error buscando clientes:', e);
+      this.transferClientResults = []; 
+    }
+  }, 300);
+},
 
-        async createClient(){
-          if(!this.newClient.name?.trim()){
-            alert('Escribe el nombre del cliente.');
-            return;
-          }
-          try{
-            const r = await fetch(`{{ route('caja.clients.store') }}`,{
-              method:'POST',
-              headers:{
-                'Content-Type':'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-              },
-              body: JSON.stringify(this.newClient)
-            });
 
-            if(!r.ok){
-              const t = await r.text();
-              alert(t || 'No se pudo crear el cliente.');
-              return;
-            }
+async searchClients(){
+  if(this._clientTimer) clearTimeout(this._clientTimer);
+  
+  this._clientTimer = setTimeout(async ()=>{
+    const query = this.clientQuery?.trim();
+    
+    if(!query || query.length < 2){ 
+      this.clientResults = []; 
+      return; 
+    }
+    
+    try{
+      const res = await fetch(`/caja/clientes?q=${encodeURIComponent(query)}`);
+      if(res.ok){
+        this.clientResults = await res.json();
+        console.log('Clientes encontrados para crédito:', this.clientResults);
+      } else {
+        this.clientResults = [];
+      }
+    }catch(e){ 
+      console.error('Error buscando clientes para crédito:', e);
+      this.clientResults = []; 
+    }
+  }, 300);
+},
 
-            const c = await r.json();
-            this.client = c;
-            this.newClient = {name:'', phone:''};
-            this.openNewClient = false;
-            this.toast('Cliente guardado ✅');
+openNewClientForCredit(){
+  this.newClient = {
+    name: this.clientQuery?.trim() || '', 
+    phone: ''
+  };
+  this.openNewClient = true;
+  this.$nextTick(()=>this.$refs.cliname?.focus());
+},
 
-          }catch{
-            alert('Error de red.');
-          }
-        },
+   async createClient(){
+  if(!this.newClient.name?.trim()){
+    alert('⚠️ Escribe el nombre del cliente.');
+    return;
+  }
+  
+  try{
+    const r = await fetch(`{{ route('caja.clients.store') }}`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+      },
+      body: JSON.stringify({
+        name: this.newClient.name.trim(),
+        phone: this.newClient.phone?.trim() || null
+      })
+    });
+
+    if(!r.ok){
+      const errorText = await r.text();
+      console.error('Error al crear cliente:', errorText);
+      alert('❌ No se pudo crear el cliente.');
+      return;
+    }
+
+    const cliente = await r.json();
+    console.log('Cliente creado:', cliente); // Debug
+    
+    // ✅ Asignar al contexto correcto
+    if(this.payment === 'credit'){
+      this.client = cliente;
+      this.clientQuery = cliente.name;
+    } else if(this.payment === 'transfer'){
+      this.transferClient = cliente;
+      this.transferClientQuery = cliente.name;
+    }
+    
+    // Limpiar y cerrar modal
+    this.newClient = {name:'', phone:''};
+    this.openNewClient = false;
+    this.toast('✅ Cliente guardado');
+
+  }catch(e){
+    console.error('Error de red:', e);
+    alert('❌ Error de red al crear cliente.');
+  }
+},
+
+
+openNewClientForTransfer(){
+  this.newClient = {
+    name: this.transferClientQuery?.trim() || '', 
+    phone: ''
+  };
+  this.openNewClient = true;
+  this.$nextTick(()=>this.$refs.cliname?.focus());
+},
+
+
+
 
         catchScan(e){
           if (this.openNewClient || this.openCash) return;
@@ -1351,15 +1651,31 @@
             return;
           }
 
-          const body = {
-            items: this.cart.map(x=>({id:x.id,qty:x.qty,price:x.price})),
-            payment:  this.payment,
-            fee_pct:  (this.payment==='card') ? Number(this.feePct||0) : 0,
-            surcharge: this.feeAmount(),
-            client_id: (this.payment==='credit' && this.client) ? this.client.id : null,
-            due_date:  (this.payment==='credit') ? this.dueDate : null,
-            ...extras,
-          };
+         // Validar transferencia
+// Validar transferencia
+if(this.payment === 'transfer') {
+  const clientName = this.transferClient ? this.transferClient.name : this.transferClientQuery;
+  if(!clientName || !clientName.trim()) {
+    alert('⚠️ Debes ingresar el nombre del cliente que hizo la transferencia');
+    return;
+  }
+  if(!this.transferBank) {
+    alert('⚠️ Debes seleccionar el banco de la transferencia');
+    return;
+  }
+}
+
+const body = {
+  items: this.cart.map(x=>({id:x.id,qty:x.qty,price:x.price})),
+  payment: this.payment,  // ← CAMBIADO A "payment"
+  fee_pct:  (this.payment==='card') ? Number(this.feePct||0) : 0,
+  surcharge: this.feeAmount(),
+  client_id: (this.payment==='credit' && this.client) ? this.client.id : null,
+  due_date:  (this.payment==='credit') ? this.dueDate : null,
+  transfer_client_name: (this.payment==='transfer') ? (this.transferClient ? this.transferClient.name : this.transferClientQuery) : null,
+  transfer_bank: (this.payment==='transfer') ? this.transferBank : null,
+  ...extras,
+};
 
           try{
             const r = await fetch(`{{ route('caja.charge') }}`,{
@@ -1433,9 +1749,16 @@
               detail: { total: this.grandTotal(), payment: this.payment }
             }));
 
-            this.clear();
-            this.feePct = 0;
-            this.payment = 'cash';
+          this.clear();
+this.feePct = 0;
+this.payment = 'cash';
+this.client = null;
+this.clientQuery = '';
+this.clientResults = [];
+this.transferClient = null;
+this.transferClientQuery = '';
+this.transferBank = '';
+this.transferClientResults = [];
             this.client = null;
             this.clientQuery = '';
             this.clientResults = [];
@@ -1513,8 +1836,19 @@
           }
         },
 
+
+
+
+
+
+
+
+
+
+
 async retrievePendingSale(id){
   try{
+    // 1) Traer la venta
     const r = await fetch(`/sales-management/pending/${id}`,{
       headers:{
         'Accept':'application/json',
@@ -1531,10 +1865,18 @@ async retrievePendingSale(id){
       cat: item.category || ''
     }));
 
+    // 2) Eliminarla de la lista de “en espera”
+    await fetch(`/sales-management/pending/${id}`,{
+      method:'DELETE',
+      headers:{
+        'Accept':'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      }
+    });
+
+    // 3) Cerrar modal y actualizar contador
     document.getElementById('pendingSalesModal').classList.add('hidden');
     this.toast('✅ Venta recuperada');
-
-    // <- NUEVO: bajar el contador porque ya la "sacamos"
     this.loadPendingSalesCount();
 
   }catch(e){
@@ -1542,6 +1884,7 @@ async retrievePendingSale(id){
     alert('❌ Error al recuperar venta');
   }
 }
+
 ,
 
         async deletePendingSale(id){

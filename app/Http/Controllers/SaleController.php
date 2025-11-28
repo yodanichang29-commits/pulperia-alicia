@@ -11,11 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class SaleController extends Controller
 {
-
-
-
-
- public function void(Sale $sale)
+    public function void(Sale $sale)
     {
         DB::transaction(function () use ($sale) {
 
@@ -52,12 +48,6 @@ class SaleController extends Controller
         return back()->with('success', 'Venta anulada y stock restaurado.');
     }
 
-
-
-
-
-
-
     public function store(Request $r)
     {
         $data = $r->validate([
@@ -67,7 +57,9 @@ class SaleController extends Controller
             'items.*.price'     => 'required|numeric|min:0.01',
 
             // ¡Usa los mismos valores que tu enum en la BD!
-            'payment_method'    => 'required|in:cash,card,transfer,credit',
+            'payment'    => 'required|in:cash,card,transfer,credit',
+            'transfer_client_name' => 'nullable|string|max:255',
+            'transfer_bank'        => 'nullable|in:BAC,Occidente,Atlantida,Ficohsa,Cuscatlan,Banpais',
 
             // comisión de tarjeta
             'fee_pct'           => 'nullable|numeric|min:0',      // % (info)
@@ -79,7 +71,7 @@ class SaleController extends Controller
         ]);
 
         // si es crédito, cliente es obligatorio
-        if ($data['payment_method'] === 'credit' && empty($data['client_id'])) {
+        if ($data['payment'] === 'credit' && empty($data['client_id'])) {
             return response()->json(['message' => 'En ventas a crédito debes seleccionar o crear un cliente.'], 422);
         }
 
@@ -89,28 +81,32 @@ class SaleController extends Controller
         // si no mandan 'surcharge', lo calculo cuando es tarjeta
         $surcharge = isset($data['surcharge'])
             ? round((float)$data['surcharge'], 2)
-            : (($data['payment_method'] === 'card' && $feePct > 0) ? round($subtotal * $feePct / 100, 2) : 0.0);
+            : (($data['payment'] === 'card' && $feePct > 0) ? round($subtotal * $feePct / 100, 2) : 0.0);
         $total = round($subtotal + $surcharge, 2);
 
         $saleId = null;
 
         DB::transaction(function () use ($data, $subtotal, $surcharge, $feePct, $total, &$saleId) {
-            $isCredit = $data['payment_method'] === 'credit';
+            $isCredit = $data['payment'] === 'credit';
 
             // crea la venta
             $sale = Sale::create([
                 'user_id'        => auth()->id(),
-                'payment_method' => $data['payment_method'],
+                'payment' => $data['payment'],
                 'subtotal'       => $subtotal,
                 'surcharge'      => $surcharge,
                 'fee_pct'        => $feePct,
                 'total'          => $total,
 
-                // campos de crédito (asegúrate de tenerlos en la tabla)
+                // campos de crédito
                 'client_id'      => $isCredit ? $data['client_id'] : null,
                 'due_date'       => $isCredit ? ($data['due_date'] ?? now()->addDays(30)->toDateString()) : null,
                 'balance'        => $isCredit ? $total : 0,
                 'status'         => $isCredit ? 'open' : 'paid',
+
+                // campos de transferencia
+                'transfer_client_name' => $data['payment'] === 'transfer' ? ($data['transfer_client_name'] ?? null) : null,
+                'transfer_bank'        => $data['payment'] === 'transfer' ? ($data['transfer_bank'] ?? null) : null,
             ]);
 
             $saleId = $sale->id;
@@ -129,17 +125,6 @@ class SaleController extends Controller
                 ]);
 
                 Product::whereKey($i['id'])->decrement('stock', (int)$qty);
-            }
-
-            // pago inmediato si NO es crédito
-            if (!$isCredit) {
-                SalePayment::create([
-                    'sale_id' => $sale->id,
-                    'user_id' => auth()->id(),
-                    'amount'  => $total,
-                    'method'  => $data['payment_method'], // cash | card | transfer
-                    'paid_at' => now(),
-                ]);
             }
         });
 

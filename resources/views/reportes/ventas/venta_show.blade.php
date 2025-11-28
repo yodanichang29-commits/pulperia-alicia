@@ -3,10 +3,7 @@
     <h2 class="font-semibold text-xl text-gray-800">
       🧾 Detalle de venta #{{ $venta->id }} — <span class="text-blue-700">Pulpería Alicia</span>
     </h2>
-   
   </x-slot>
-
- 
 
   <div class="flex gap-2 mb-4">
     <a href="{{ url()->previous() }}" class="px-3 py-2 bg-gray-200 rounded-lg">← Volver</a>
@@ -27,6 +24,61 @@
         @default {{ $venta->payment }}
       @endswitch
     </p>
+
+    {{-- ✅ SI ES CRÉDITO: Mostrar datos del cliente y crédito --}}
+    @if($venta->payment === 'credit' && $venta->client)
+      <div class="mt-4 p-4 bg-sky-50 border-l-4 border-sky-500 rounded-lg">
+        <div class="text-sm font-semibold text-sky-900 mb-3">
+          💳 Datos del crédito
+        </div>
+        
+        <div class="space-y-2 text-sm text-gray-700">
+          <div>
+            <span class="font-medium">Cliente:</span> 
+            <span class="font-semibold">{{ $venta->client->name }}</span>
+          </div>
+          
+          @if($venta->client->phone)
+            <div>
+              <span class="font-medium">Teléfono:</span> 
+              <span>{{ $venta->client->phone }}</span>
+            </div>
+          @endif
+          
+          @if($venta->due_date)
+            <div>
+              <span class="font-medium">Fecha de vencimiento:</span> 
+              <span class="font-semibold">{{ \Carbon\Carbon::parse($venta->due_date)->format('d/m/Y') }}</span>
+            </div>
+          @endif
+        </div>
+      </div>
+    @endif
+
+    {{-- ✅ SI ES TRANSFERENCIA: Mostrar datos de la transferencia --}}
+    @if($venta->payment === 'transfer' && ($venta->transfer_client_name || $venta->transfer_bank))
+      <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
+        <div class="text-sm font-semibold text-amber-900 mb-3">
+          🏦 Datos de la transferencia
+        </div>
+        
+        <div class="space-y-2 text-sm text-gray-700">
+          @if($venta->transfer_client_name)
+            <div>
+              <span class="font-medium">Cliente que transfirió:</span> 
+              <span class="font-semibold">{{ $venta->transfer_client_name }}</span>
+            </div>
+          @endif
+          
+          @if($venta->transfer_bank)
+            <div>
+              <span class="font-medium">Banco:</span> 
+              <span class="font-semibold">{{ $venta->transfer_bank }}</span>
+            </div>
+          @endif
+        </div>
+      </div>
+    @endif
   </div>
 
   {{-- Totales --}}

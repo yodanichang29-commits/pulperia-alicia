@@ -21,6 +21,8 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SaleManagementController;
 use App\Http\Controllers\CashMovementController;
+use App\Http\Controllers\Caja\ClientController;
+use App\Http\Controllers\Reportes\ReporteTurnoController;
 
 
 
@@ -62,12 +64,39 @@ Route::middleware('auth')->group(function () {
     Route::post('/caja/shift/open', [ShiftController::class, 'open'])->name('caja.shift.open');
     Route::get('/caja/shift/summary/{id?}', [ShiftController::class, 'summary'])->name('caja.shift.summary');
     Route::post('/caja/shift/close', [ShiftController::class, 'close'])->name('caja.shift.close');
+            Route::get('/turnos/{id}/reporte', [ShiftController::class, 'report'])->name('turnos.reporte');
+            Route::get('/reportes/turno/{shift}', [ReporteTurnoController::class, 'resumenPorCategoria'])
+    ->name('reportes.turno.resumen')
+    ->middleware('auth');
+
+
+
+     // 🔄 DEVOLUCIONES
+    Route::post('/sales-management/search-product-in-shift', 
+        [SaleManagementController::class, 'searchProductInCurrentShift'])
+        ->name('sales-management.search-product-in-shift');
+
+    Route::post('/sales-management/return-item', 
+        [SaleManagementController::class, 'returnSaleItem'])
+        ->name('sales-management.return-item');
+
+    
+    Route::get('/sales-management/products/suggest', 
+        [SaleManagementController::class, 'suggestProducts'])
+        ->name('sales-management.products.suggest');
+
+
 });
 
 // Anular venta (desde Caja)
 Route::middleware('auth')
     ->post('/caja/ventas/{sale}/anular', [SaleController::class, 'void'])
     ->name('caja.sales.void');
+
+
+
+
+    
 
 /*
 |--------------------------------------------------------------------------
@@ -280,9 +309,6 @@ Route::middleware('auth')
 
 
 
-    Route::get('/sales-management/products/suggest', [SaleManagementController::class, 'suggestProducts'])
-    ->name('sales.products.suggest')
-    ->middleware('auth');
 
 
 
@@ -348,7 +374,21 @@ Route::prefix('calendar')->name('calendar.')->group(function () {
 
 
 
+Route::get('/api/clients/search', [App\Http\Controllers\Caja\ClientController::class, 'search'])
+    ->name('clients.search')
+    ->middleware('auth');
 
+
+
+
+    /*
+|--------------------------------------------------------------------------
+| CATEGORÍAS (CRUD)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    Route::resource('categorias', \App\Http\Controllers\CategoryController::class);
+});
 
 /*
 |--------------------------------------------------------------------------

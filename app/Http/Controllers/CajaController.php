@@ -22,38 +22,23 @@ class CajaController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+   public function index()
 {
-    // ✅ OBTENER PRODUCTOS ORDENADOS POR MÁS VENDIDOS DEL MES ACTUAL
-    // Compatible con SQLite
-    $mesActual = now()->format('Y-m');  // Ejemplo: "2025-11"
-    
-    $products = Product::select(
-            'products.id',
-            'products.name',
-            'products.price',
-            'products.photo',
-            'products.category'
-        )
-        ->leftJoin('sale_items', function($join) use ($mesActual) {
-            $join->on('sale_items.product_id', '=', 'products.id')
-                 // Solo contar ventas del mes actual (compatible con SQLite)
-                 ->where('sale_items.created_at', '>=', $mesActual . '-01 00:00:00')
-                 ->where('sale_items.created_at', '<', now()->addMonth()->startOfMonth()->format('Y-m-d H:i:s'));
-        })
-        ->selectRaw('COALESCE(SUM(sale_items.qty), 0) as total_vendido')
-        ->groupBy('products.id', 'products.name', 'products.price', 'photo', 'products.category')
-        ->orderByDesc('total_vendido')  // Los más vendidos primero
-        ->orderBy('products.name')       // Desempate por nombre
+    // Cargar productos activos con su categoría
+    $products = Product::with('category')
+        ->where('active', true)
+        ->orderBy('name')
         ->get();
-
-    $categories = Product::select('category')
-        ->distinct()
-        ->pluck('category')
-        ->filter()
-        ->values();
-
-    return view('caja.index', compact('products','categories'));
+    
+    // Cargar categorías desde la base de datos (solo las activas y con productos)
+    $categories = \App\Models\Category::active()
+        ->ordered()
+        ->whereHas('products', function($query) {
+            $query->where('active', true);
+        })
+        ->get(['id', 'name']);
+    
+    return view('caja.index', compact('products', 'categories'));
 }
 
     /**
@@ -109,6 +94,12 @@ class CajaController extends Controller
             // crédito
             'client_id'       => 'nullable|required_if:payment,credit|integer|exists:clients,id',
             'due_date'        => 'nullable|required_if:payment,credit|date',
+
+
+
+              // ✅ TRANSFERENCIA - AGREGAR ESTAS DOS LÍNEAS
+        'transfer_client_name' => 'nullable|string|max:255',
+        'transfer_bank'        => 'nullable|string|in:BAC,Occidente,Atlantida,Ficohsa,Cuscatlan,Banpais',
         ]);
 
         $payment = $data['payment'];
@@ -195,6 +186,11 @@ class CajaController extends Controller
         // crédito
         'client_id'     => $payment === 'credit' ? ($data['client_id'] ?? null) : null,
         'due_date'      => $payment === 'credit' ? ($data['due_date'] ?? null) : null,
+
+
+          // ✅ TRANSFERENCIA - AGREGAR ESTAS DOS LÍNEAS
+    'transfer_client_name' => $payment === 'transfer' ? ($data['transfer_client_name'] ?? null) : null,
+    'transfer_bank'        => $payment === 'transfer' ? ($data['transfer_bank'] ?? null) : null,
     ]);
 
     // --- 4.3) Items + Rebaja de stock + Movimiento por cada línea ---

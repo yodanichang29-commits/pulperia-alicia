@@ -180,7 +180,7 @@ class CashMovementController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+public function store(Request $request)
 {
     // Validar datos
     $validated = $request->validate([
@@ -191,6 +191,7 @@ class CashMovementController extends Controller
         'description' => 'required|string|max:500',
         'amount' => 'required|numeric|min:0.01',
         'payment_method' => 'required|in:efectivo,transferencia,tarjeta,otro',
+        'source' => 'nullable|required_if:payment_method,efectivo|in:fondo,caja_turno',
         'receipt_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         'notes' => 'nullable|string|max:1000',
     ]);
@@ -204,6 +205,7 @@ class CashMovementController extends Controller
         $validated['category'] === 'Ingreso al fondo inicial'
     ) {
         $validated['payment_method'] = 'efectivo';
+        $validated['source'] = 'fondo'; // Siempre va al fondo
     }
 
     /**
@@ -231,14 +233,11 @@ class CashMovementController extends Controller
     $validated['created_by'] = Auth::id();
 
     /**
-     * 🔥 Vincular EFECTIVO con el turno abierto
-     * (para afectar la caja física del cierre del día)
+     * 🔥 NUEVA LÓGICA: Vincular con turno SOLO si:
+     * 1. Es efectivo
+     * 2. La fuente es 'caja_turno'
      */
-    if ($validated['payment_method'] === 'efectivo') {
-
-        // Pero si es Ingreso al fondo inicial → SOLO agregar al turno, pero NO suma al balance
-        // (la lógica financiera ya la hicimos en ShiftController)
-
+    if ($validated['payment_method'] === 'efectivo' && ($validated['source'] ?? 'caja_turno') === 'caja_turno') {
         $currentShift = CashShift::where('user_id', Auth::id())
             ->whereNull('closed_at')
             ->first();
@@ -246,6 +245,9 @@ class CashMovementController extends Controller
         if ($currentShift) {
             $validated['cash_shift_id'] = $currentShift->id;
         }
+    } else {
+        // Si es del fondo o no es efectivo, no vincular con turno
+        $validated['cash_shift_id'] = null;
     }
 
     /**

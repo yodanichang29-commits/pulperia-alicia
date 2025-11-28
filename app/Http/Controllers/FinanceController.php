@@ -91,10 +91,7 @@ $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateS
     ->get();
 
 
-    $prevOtrosIngresos = CashMovement::whereBetween('date', [$prevStart->toDateString(), $prevEnd->toDateString()])
-    ->where('type', 'ingreso')
-    ->where('category', '!=', 'Ingreso al fondo inicial')   // 👈 igual
-    ->sum('amount');
+  
 
 
 
@@ -143,10 +140,16 @@ $otrosIngresosPorCategoria = CashMovement::whereBetween('date', [$start->toDateS
         // ========================================
         // 7) TOTALES Y BALANCE
         // ========================================
-        $totalVentas = $ventasEfectivo + $ventasTarjeta + $ventasTransf;
-        $totalEntradas = $totalVentas + $abonosTotal + $otrosIngresos;
-        $totalSalidas = $compras + $mermas + $gastosOperativos;
-        $balance = $totalEntradas - $totalSalidas;
+       // 📊 Calcular faltantes/sobrantes de caja que afectan el balance
+$faltantesSobrantes = \App\Models\CashShift::whereBetween('closed_at', [$start, $end])
+    ->whereNotNull('closed_at')
+    ->where('affect_balance', true) // Solo los que deben afectar
+    ->sum('difference'); // Positivo = sobrante, Negativo = faltante
+
+$totalVentas = $ventasEfectivo + $ventasTarjeta + $ventasTransf;
+$totalEntradas = $totalVentas + $abonosTotal + $otrosIngresos + max(0, $faltantesSobrantes); // Solo sobrantes
+$totalSalidas = $compras + $mermas + $gastosOperativos + abs(min(0, $faltantesSobrantes)); // Solo faltantes
+$balance = $totalEntradas - $totalSalidas;
 
         // ========================================
         // 8) GANANCIAS
@@ -447,12 +450,21 @@ $cambioCapital = $prevCapitalTotal > 0 ? (($capitalTotal - $prevCapitalTotal) / 
             'cambioBalance',
             'cambioGanancia',
             'cambioCompras',
+
+
+             
+    // 👇 AGREGAR ESTA NUEVA VARIABLE
+    'faltantesSobrantes',
             
             // Alertas
             'alertas',
             
             // Gráficas
             'datosGrafica'
+
+
+
+            
         ));
     }
 }

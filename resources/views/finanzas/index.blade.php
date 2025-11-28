@@ -276,7 +276,32 @@
                     </div>
                 </div>
 
+
+
+                {{-- Faltantes/Sobrantes de Caja --}}
+@if(isset($faltantesSobrantes) && $faltantesSobrantes != 0)
+<div>
+    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="bg-{{ $faltantesSobrantes > 0 ? 'emerald' : 'yellow' }}-100 text-{{ $faltantesSobrantes > 0 ? 'emerald' : 'yellow' }}-700 px-3 py-1 rounded-lg text-sm">
+            {{ $faltantesSobrantes > 0 ? '💰 SOBRANTES DE CAJA' : '⚠️ FALTANTES DE CAJA' }}
+        </span>
+    </h4>
+    <div class="border rounded-lg p-4 bg-{{ $faltantesSobrantes > 0 ? 'emerald' : 'yellow' }}-50">
+        <p class="text-gray-600 text-sm mb-1">
+            {{ $faltantesSobrantes > 0 ? 'Dinero que sobró en cierres de turno' : 'Dinero que faltó en cierres de turno' }}
+        </p>
+        <p class="text-2xl font-bold text-{{ $faltantesSobrantes > 0 ? 'emerald' : 'yellow' }}-700">
+            L {{ number_format(abs($faltantesSobrantes), 2) }}
+        </p>
+        <p class="text-xs text-gray-500 mt-2">
+            <strong>Nota:</strong> {{ $faltantesSobrantes > 0 ? 'Esto suma a tus entradas' : 'Esto suma a tus salidas' }}
+        </p>
+    </div>
+</div>
+@endif
+
                 {{-- Otros Ingresos --}}
+                
                 @if($otrosIngresos > 0)
                 <div>
                     <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">

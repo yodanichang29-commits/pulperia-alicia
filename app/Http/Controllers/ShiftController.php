@@ -16,9 +16,6 @@ class ShiftController extends Controller
 {
     /**
      * Obtener turno abierto del usuario autenticado
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function current(Request $request)
     {
@@ -37,9 +34,6 @@ class ShiftController extends Controller
 
     /**
      * Abrir nuevo turno para el usuario autenticado
-     *
-     * @param OpenShiftRequest $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function open(OpenShiftRequest $request)
     {
@@ -65,10 +59,6 @@ class ShiftController extends Controller
 
     /**
      * Obtener resumen del turno abierto actual o por ID
-     *
-     * @param Request $request
-     * @param int|null $id ID del turno (opcional, si no se proporciona usa el turno abierto)
-     * @return \Illuminate\Http\JsonResponse
      */
     public function summary(Request $request, int $id = null)
     {
@@ -83,66 +73,14 @@ class ShiftController extends Controller
             return response()->json(['message' => 'No hay turno abierto.'], 404);
         }
 
-        // Calcular ventas por método de pago
-        $ventasQuery = Sale::where('user_id', $uid)
-            ->when($shift->opened_at,  fn($q) => $q->where('created_at', '>=', $shift->opened_at))
-            ->when($shift->closed_at,  fn($q) => $q->where('created_at', '<',  $shift->closed_at));
+        // Reutilizar la lógica centralizada
+        $summaryData = $this->calculateFullSummary($shift);
 
-        $ventas = (clone $ventasQuery)
-            ->selectRaw('payment, SUM(total) as total')
-            ->groupBy('payment')
-            ->get()
-            ->keyBy('payment');
-
-        $by_payment = $ventas->map(fn($r) => ['total' => (float)$r->total])->toArray();
-        $cash_total = isset($ventas['cash']) ? (float)$ventas['cash']->total : 0.0;
-
-        // Usar métodos privados para evitar duplicación
-        $devolucionesTotal = $this->calculateReturnsTotal($shift);
-        $cashClientPayments = $this->calculateCashPayments($shift->id);
-        $abonosData = $this->groupPaymentsByMethod($shift->id);
-                // Movimientos de caja del turno (ingresos/egresos en efectivo)
-        $cashMovs = $this->calculateCashShiftMovements($shift->id);
-
-
-                // Efectivo esperado = Fondo + Ventas cash + Abonos efectivo
-        //                    + Ingresos de caja - Devoluciones - Egresos de caja
-       $expected_cash = (float)($shift->opening_float ?? 0)
-               + $cash_total                    // ventas en efectivo
-               + $cashClientPayments            // abonos en efectivo
-               + $cashMovs['ingresos']          // ingresos de caja (ej. préstamo en efectivo)
-               - $devolucionesTotal             // devoluciones
-               - $cashMovs['egresos'];          // todos los egresos en efectivo (incluye compras)
-
-
-
-        return response()->json([
-    'by_payment'        => $by_payment,
-    'expected_cash'     => round($expected_cash, 2),
-
-    'abonos_by_method'  => [
-        'efectivo'      => $abonosData['efectivo'],
-        'tarjeta'       => $abonosData['tarjeta'],
-        'transferencia' => $abonosData['transferencia'],
-    ],
-    'abonos_total'      => round($abonosData['total'], 2),
-    'devoluciones'      => round($devolucionesTotal, 2),
-
-    // 👇 NUEVO BLOQUE PARA EL MODAL
-    'cash_movements'    => [
-        'ingresos' => round($cashMovs['ingresos'], 2),
-        'egresos'  => round($cashMovs['egresos'],  2),
-        'compras'  => round($cashMovs['compras'],  2),
-    ],
-]);
-
+        return response()->json($summaryData);
     }
 
     /**
      * Cerrar turno y calcular diferencia de caja
-     *
-     * @param CloseShiftRequest $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function close(CloseShiftRequest $request)
     {
@@ -153,31 +91,12 @@ class ShiftController extends Controller
             return response()->json(['message' => 'No tienes turno abierto.'], 422);
         }
 
-        // Calcular ventas en efectivo del turno
-        $salesCashTotal = (float) Sale::where('cash_shift_id', $shift->id)
-            ->where('payment', 'cash')
-            ->sum('total');
-
-        // Usar métodos privados para evitar duplicación
-        $devolucionesTotal = $this->calculateReturnsTotal($shift);
-        $cashClientPayments = $this->calculateCashPayments($shift->id);
-        $abonosData = $this->groupPaymentsByMethod($shift->id);
-                // Movimientos de caja del turno (ingresos/egresos en efectivo)
-        $cashMovs = $this->calculateCashShiftMovements($shift->id);
-
-
-           // Efectivo esperado = Fondo inicial + Ventas cash + Abonos efectivo
-        //                    + Ingresos de caja - Devoluciones - Egresos de caja
-        $expected = (float) $shift->opening_float
-                  + $salesCashTotal
-                  + $cashClientPayments
-                  + $cashMovs['ingresos']
-                  - $devolucionesTotal
-                  - $cashMovs['egresos'];
-
+        // Calcular resumen completo usando el método summary
+        $summaryData = $this->calculateFullSummary($shift);
 
         // Calcular diferencia
         $closing = (float) $request->float('closing_cash_count');
+        $expected = $summaryData['expected_cash'];
         $diff = $closing - $expected;
 
         // Actualizar turno
@@ -187,28 +106,167 @@ class ShiftController extends Controller
             'expected_cash'      => $expected,
             'difference'         => $diff,
             'notes'              => $request->string('notes'),
+            'affect_balance'     => $request->boolean('affect_balance', false),
         ]);
 
+        // Registrar diferencia en balance si se marca la opción
+        if ($request->boolean('affect_balance', false) && $diff != 0) {
+            \App\Models\BalanceEntry::create([
+                'date' => now()->toDateString(),
+                'category' => $diff > 0 ? 'Sobrante de caja' : 'Faltante de caja',
+                'type' => $diff > 0 ? 'ingreso' : 'gasto',
+                'amount' => abs($diff),
+                'description' => "Diferencia de caja - Turno #{$shift->id}",
+                'shift_id' => $shift->id
+            ]);
+        }
+
+        // ✅ DEVOLVER DATOS COMPLETOS PARA EL MODAL
         return response()->json([
-            'message'            => 'Turno cerrado',
-            'expected_cash'      => $expected,
-            'closing_cash_count' => $closing,
-            'difference'         => $diff,
-            'abonos_by_method'   => [
-                'efectivo'      => $abonosData['efectivo'],
-                'tarjeta'       => $abonosData['tarjeta'],
-                'transferencia' => $abonosData['transferencia'],
+            'ok' => true,
+            'message' => 'Turno cerrado exitosamente',
+            'shift' => [
+                'id' => $shift->id,
+                'opened_at' => $shift->opened_at->format('H:i'),
+                'closed_at' => now()->format('H:i'),
+                'opening_float' => (float) $shift->opening_float,
+                'closing_cash_count' => $closing,
+                'expected_cash' => $expected,
+                'cash_difference' => $diff,
+                'opening_notes' => $shift->notes,
+                'closing_notes' => $request->string('notes'),
+                'date' => $shift->opened_at->format('d/m/Y')
             ],
-            'abonos_total'       => round($abonosData['total'], 2),
-            'devoluciones'       => round($devolucionesTotal, 2),
+            'summary' => $summaryData,
+            // 👉 URL a la página que muestra ventas por categoría de ese turno
+            'redirect_url' => route('turnos.reporte', $shift->id),
         ]);
     }
 
     /**
+     * Generar reporte de ventas por categoría del turno cerrado
+     */
+    public function report(int $id)
+    {
+        // ✅ CARGAR EL TURNO CON TODAS LAS RELACIONES NECESARIAS
+        $shift = CashShift::with([
+                'sales.items.product.category',  // Cargar categorías
+                'user'                            // Cargar usuario
+            ])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
+
+        // Verificar que el turno esté cerrado
+        if (!$shift->closed_at) {
+            return redirect()->route('caja.pos')
+                ->with('error', 'Este turno aún no ha sido cerrado.');
+        }
+
+        // ✅ AGRUPAR VENTAS POR CATEGORÍA - USANDO RELACIONES YA CARGADAS
+        $salesByCategory = collect($shift->sales)  // ⚠️ SIN PARÉNTESIS
+            ->flatMap(fn($sale) => $sale->items)
+            ->filter(fn($item) => $item->product !== null)
+            ->groupBy(function($item) {
+                // Verificar que el producto y categoría existen
+                if (!$item->product) {
+                    return 'Sin categoría';
+                }
+                
+                // Verificar que la categoría existe
+                if ($item->product->category && is_object($item->product->category)) {
+                    return $item->product->category->name;
+                }
+                
+                // Fallback: Si tiene category_id pero no se cargó, intentar cargarla
+                if ($item->product->category_id) {
+                    $category = \App\Models\Category::find($item->product->category_id);
+                    return $category ? $category->name : 'Sin categoría';
+                }
+                
+                return 'Sin categoría';
+            })
+            ->map(function($items, $categoryName) {
+                return [
+                    'name' => $categoryName,
+                    'qty' => $items->sum('qty'),
+                    'total' => $items->sum('total'),
+                    'products' => $items->groupBy('product_id')->map(function($productItems) {
+                        $first = $productItems->first();
+                        return [
+                            'name' => $first->product ? $first->product->name : 'Producto desconocido',
+                            'qty' => $productItems->sum('qty'),
+                            'total' => $productItems->sum('total'),
+                        ];
+                    })->values()
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        // Calcular resumen completo
+        $summary = $this->calculateFullSummary($shift);
+
+        return view('turnos.reporte', compact('shift', 'salesByCategory', 'summary'));
+    }
+
+    /**
+     * Calcular resumen completo del turno (para reutilizar en close y summary)
+     */
+  /**
+ * Calcular resumen completo del turno (para reutilizar en close y summary)
+ */
+private function calculateFullSummary(CashShift $shift): array
+{
+    $uid = $shift->user_id;
+
+    // Calcular ventas por método de pago (SOLO ventas completadas, SIN devoluciones)
+    $ventasQuery = Sale::where('user_id', $uid)
+        ->when($shift->opened_at, fn($q) => $q->where('created_at', '>=', $shift->opened_at))
+        ->when($shift->closed_at, fn($q) => $q->where('created_at', '<', $shift->closed_at));
+
+    $ventas = (clone $ventasQuery)
+        ->where('status', Sale::STATUS_COMPLETED) // ← ✅ LÍNEA AGREGADA
+        ->selectRaw('payment, SUM(total) as total')
+        ->groupBy('payment')
+        ->get()
+        ->keyBy('payment');
+
+    $by_payment = $ventas->map(fn($r) => ['total' => (float)$r->total])->toArray();
+    $cash_total = isset($ventas['cash']) ? (float)$ventas['cash']->total : 0.0;
+
+    // Calcular componentes
+    $devolucionesTotal = $this->calculateReturnsTotal($shift);
+    $cashClientPayments = $this->calculateCashPayments($shift->id);
+    $abonosData = $this->groupPaymentsByMethod($shift->id);
+    $cashMovs = $this->calculateCashShiftMovements($shift->id);
+
+    // Efectivo esperado (ahora correcto - resta devoluciones UNA SOLA VEZ)
+    $expected_cash = (float)($shift->opening_float ?? 0)
+        + $cash_total
+        + $cashClientPayments
+        + $cashMovs['ingresos']
+        
+        - $cashMovs['egresos'];
+
+    return [
+        'by_payment' => $by_payment,
+        'expected_cash' => round($expected_cash, 2),
+        'abonos_by_method' => [
+            'efectivo' => $abonosData['efectivo'],
+            'tarjeta' => $abonosData['tarjeta'],
+            'transferencia' => $abonosData['transferencia'],
+        ],
+        'abonos_total' => round($abonosData['total'], 2),
+        'devoluciones' => round($devolucionesTotal, 2),
+        'cash_movements' => [
+            'ingresos' => round($cashMovs['ingresos'], 2),
+            'egresos' => round($cashMovs['egresos'], 2),
+            'compras' => round($cashMovs['compras'], 2),
+        ],
+    ];
+}
+    /**
      * Calcular total de devoluciones del turno
-     *
-     * @param CashShift $shift
-     * @return float
      */
     private function calculateReturnsTotal(CashShift $shift): float
     {
@@ -223,9 +281,6 @@ class ShiftController extends Controller
 
     /**
      * Calcular abonos en efectivo del turno
-     *
-     * @param int $shiftId
-     * @return float
      */
     private function calculateCashPayments(int $shiftId): float
     {
@@ -236,9 +291,6 @@ class ShiftController extends Controller
 
     /**
      * Agrupar abonos por método de pago
-     *
-     * @param int $shiftId
-     * @return array ['efectivo' => float, 'tarjeta' => float, 'transferencia' => float, 'total' => float]
      */
     private function groupPaymentsByMethod(int $shiftId): array
     {
@@ -259,33 +311,38 @@ class ShiftController extends Controller
         return $grouped;
     }
 
+    /**
+     * Movimientos de caja del turno (solo EFECTIVO)
+     */
+    private function calculateCashShiftMovements(int $shiftId): array
+    {
+        // Verificar si la tabla cash_movements existe
+        if (!\Schema::hasTable('cash_movements')) {
+            return [
+                'ingresos' => 0.0,
+                'egresos'  => 0.0,
+                'compras'  => 0.0,
+            ];
+        }
 
+        $base = CashMovement::where('cash_shift_id', $shiftId)
+            ->where('payment_method', 'efectivo');
 
-  /**
- * Movimientos de caja del turno (solo EFECTIVO)
- */
-private function calculateCashShiftMovements(int $shiftId): array
-{
-    $base = CashMovement::where('cash_shift_id', $shiftId)
-        ->where('payment_method', 'efectivo'); // afecta la caja física
+        // Total usado para COMPRAS de inventario
+        $compras = (clone $base)
+            ->where('category', 'pago_proveedor')
+            ->sum('amount');
 
-    // 🔹 Total usado para COMPRAS de inventario
-    $compras = (clone $base)
-        ->where('category', 'pago_proveedor')
-        ->sum('amount');
+        // Totales generales de ingresos/egresos
+        $totals = $base->selectRaw('type, SUM(amount) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type')
+            ->toArray();
 
-    // 🔹 Totales generales de ingresos/egresos
-    $totals = $base->selectRaw('type, SUM(amount) as total')
-        ->groupBy('type')
-        ->pluck('total', 'type')
-        ->toArray();
-
-    return [
-        'ingresos' => (float)($totals['ingreso'] ?? 0),
-        'egresos'  => (float)($totals['egreso']  ?? 0),
-        'compras'  => (float)$compras,
-    ];
-}
-
-
+        return [
+            'ingresos' => (float)($totals['ingreso'] ?? 0),
+            'egresos'  => (float)($totals['egreso']  ?? 0),
+            'compras'  => (float)$compras,
+        ];
+    }
 }
