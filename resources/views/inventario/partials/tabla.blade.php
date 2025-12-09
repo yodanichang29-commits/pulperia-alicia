@@ -22,8 +22,27 @@
       <tbody class="divide-y">
       @forelse ($products as $p)
         @php
-          // --- Bajo stock ---
-          $low = (int)$p->stock <= (int)$p->min_stock;
+          // 👈 NUEVA LÓGICA: Calcular stock real para paquetes
+          $stockDisplay = $p->stock;
+          $stockLabel = '';
+          
+          if ($p->is_package && $p->parent_product_id && $p->units_per_package) {
+              // Es un paquete: calcular cuántos paquetes se pueden armar
+              $parentProduct = \App\Models\Product::find($p->parent_product_id);
+              if ($parentProduct) {
+                  $availablePackages = floor($parentProduct->stock / $p->units_per_package);
+                  $stockDisplay = $availablePackages;
+                  $stockLabel = ' paq.';
+                  
+                  // Bajo stock basado en el producto individual
+                  $low = (int)$parentProduct->stock <= (int)$parentProduct->min_stock;
+              } else {
+                  $low = true; // Si no encuentra el producto padre, marcar como bajo
+              }
+          } else {
+              // Producto normal
+              $low = (int)$p->stock <= (int)$p->min_stock;
+          }
 
           // --- Margen ---
           $margin = $p->price > 0
@@ -35,7 +54,7 @@
           if (!empty($p->expires_at)) {
               $d    = \Carbon\Carbon::parse($p->expires_at);
               $now  = \Carbon\Carbon::today();
-              $diff = $now->diffInDays($d, false); // negativo si ya venció
+              $diff = $now->diffInDays($d, false);
 
               if ($diff < 0) {
                   $exp = ['text' => 'VENCIDO', 'class' => 'text-red-700 bg-red-100 border border-red-300'];
@@ -46,27 +65,25 @@
               }
           }
 
-         // --- Color de fila + color de celdas + borde izquierdo (en el primer <td>) ---
-$rowClass  = '';            // ya no usaremos border en <tr>
-$cellBg    = '';
-$leftBar   = '';            // <- NUEVO: lo pondremos en el 1er <td>
+          // --- Color de fila + color de celdas + borde izquierdo ---
+          $rowClass  = '';
+          $cellBg    = '';
+          $leftBar   = '';
 
-if ($low) {
-    $cellBg  = 'bg-red-100';           // más visible que red-50
-    $leftBar = 'border-l-4 border-red-500'; // se aplica al 1er <td>
-} elseif ($exp && str_contains($exp['class'], 'red')) {
-    $cellBg  = 'bg-red-100';
-    $leftBar = 'border-l-4 border-red-500';
-} elseif ($exp && str_contains($exp['class'], 'amber')) {
-    $cellBg  = 'bg-amber-50';
-    $leftBar = 'border-l-4 border-amber-400';
-}
-
-
+          if ($low) {
+              $cellBg  = 'bg-red-100';
+              $leftBar = 'border-l-4 border-red-500';
+          } elseif ($exp && str_contains($exp['class'], 'red')) {
+              $cellBg  = 'bg-red-100';
+              $leftBar = 'border-l-4 border-red-500';
+          } elseif ($exp && str_contains($exp['class'], 'amber')) {
+              $cellBg  = 'bg-amber-50';
+              $leftBar = 'border-l-4 border-amber-400';
+          }
         @endphp
 
         <tr class="{{ $rowClass }}">
-          {{-- Producto (imagen + nombre + badge bajo stock) --}}
+          {{-- Producto (imagen + nombre + badge bajo stock + badge paquete) --}}
           <td class="px-4 py-3 {{ $cellBg }} {{ $leftBar }} rounded-l-lg">
             <div class="flex items-center gap-3">
 
@@ -86,7 +103,6 @@ if ($low) {
                     @focus="$event.currentTarget.blur()"
                     @mouseenter="$event.currentTarget.blur()"
                   >
-                    {{-- Sin tooltip nativo --}}
                     <img src="{{ $p->image_url }}"
                          alt=""
                          aria-hidden="true"
@@ -105,37 +121,52 @@ if ($low) {
                 @endif
               </div>
 
-              {{-- Nombre y alerta --}}
+              {{-- Nombre y badges --}}
               <div class="min-w-0">
                 <div class="font-medium text-gray-900 truncate flex items-center gap-2">
                   {{ $p->name }}
+                  
+                  {{-- 👈 NUEVO: Badge si es paquete --}}
+                  @if($p->is_package)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 text-xs">
+                      📦 Paquete
+                    </span>
+                  @endif
+                  
                   @if($low)
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-300 text-xs">
                       ⚠️ Bajo stock
                     </span>
                   @endif
                 </div>
+                
+                {{-- 👈 NUEVO: Info del paquete --}}
+                @if($p->is_package && $p->parentProduct)
+                  <div class="text-xs text-gray-500 mt-0.5">
+                    {{ $p->units_per_package }} × {{ $p->parentProduct->name }}
+                  </div>
+                @endif
               </div>
 
             </div>
           </td>
 
-            <td class="px-4 py-3 text-gray-700 {{ $cellBg }}">{{ $p->barcode ?: '—' }}</td>
+          <td class="px-4 py-3 text-gray-700 {{ $cellBg }}">{{ $p->barcode ?: '—' }}</td>
 
-  <td class="px-4 py-3 text-gray-700 {{ $cellBg }}">{{ optional($p->provider)->name ?: '—' }}</td>
+          <td class="px-4 py-3 text-gray-700 {{ $cellBg }}">{{ optional($p->provider)->name ?: '—' }}</td>
 
-          {{-- Stock --}}
-  <td class="px-4 py-3 text-sm text-center {{ $cellBg }} {{ $low ? 'text-red-700 font-semibold' : 'text-gray-700' }}">
-    {{ $p->stock }}
-  </td>
+          {{-- 👈 MODIFICADO: Stock con label --}}
+          <td class="px-4 py-3 text-sm text-center {{ $cellBg }} {{ $low ? 'text-red-700 font-semibold' : 'text-gray-700' }}">
+            {{ $stockDisplay }}{{ $stockLabel }}
+          </td>
 
           {{-- Mínimo --}}
-  <td class="px-4 py-3 text-sm text-center text-gray-700 {{ $cellBg }}">{{ $p->min_stock }}</td>
+          <td class="px-4 py-3 text-sm text-center text-gray-700 {{ $cellBg }}">{{ $p->min_stock }}</td>
 
           {{-- Precio compra / venta --}}
-         <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->purchase_price, 2) }}</td>
-  <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->price, 2) }}</td>
-  <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">{{ number_format($margin, 2) }}%</td>
+          <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->purchase_price, 2) }}</td>
+          <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">L {{ number_format($p->price, 2) }}</td>
+          <td class="px-4 py-3 text-right tabular-nums text-gray-700 {{ $cellBg }}">{{ number_format($margin, 2) }}%</td>
 
           {{-- Acciones --}}
           <td class="px-4 py-3 {{ $cellBg }}">
@@ -153,14 +184,14 @@ if ($low) {
           </td>
 
           {{-- Caducidad --}}
-         <td class="px-4 py-3 {{ $cellBg }}">
-    @if($exp)
-      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs {{ $exp['class'] }}">
-        {{ $exp['text'] }}
-      </span>
-    @else
-      <span class="text-gray-500">—</span>
-    @endif
+          <td class="px-4 py-3 {{ $cellBg }}">
+            @if($exp)
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs {{ $exp['class'] }}">
+                {{ $exp['text'] }}
+              </span>
+            @else
+              <span class="text-gray-500">—</span>
+            @endif
           </td>
         </tr>
       @empty

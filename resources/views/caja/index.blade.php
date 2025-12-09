@@ -799,12 +799,12 @@ x-show="showProduct({{ $p->category_id ?? 'null' }}, @js($p->name))"
 
 
 {{-- ✅ ETIQUETA DE MÁS VENDIDO (solo para los top 3) --}}
-    @if($loop->iteration <= 3 && isset($p->total_vendido) && $p->total_vendido > 0)
-      <div class="absolute top-2 right-2 z-10 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
-        <span>🔥</span>
-        <span>#{{ $loop->iteration }}</span>
-      </div>
-    @endif
+
+            {{-- 🔥 Top 3 más vendidos del mes --}}
+            @if ($loop->iteration <= 3 && $p->total_vendido > 0)
+              <span class="text-orange-500 text-lg" title="Top ventas del mes">🔥</span>
+            @endif
+          
 
               <div class="relative rounded-2xl overflow-hidden bg-white grid place-items-center">
                 <div class="w-full h-40 md:h-44 p-2">

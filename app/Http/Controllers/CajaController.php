@@ -22,24 +22,52 @@ class CajaController extends Controller
      *
      * @return \Illuminate\View\View
      */
-   public function index()
+public function index()
 {
-    // Cargar productos activos con su categoría
-    $products = Product::with('category')
-        ->where('active', true)
-        ->orderBy('name')
+    // 🗓 Mes actual tipo "2025-11"
+    $mesActual = now()->format('Y-m');
+
+    // 📦 Productos activos ordenados por MÁS VENDIDOS en el mes actual
+    $products = Product::select(
+            'products.id',
+            'products.name',
+            'products.price',
+            'products.photo',
+            'products.category_id',
+            'products.active'
+        )
+        ->with('category')
+        ->leftJoin('sale_items', function($join) use ($mesActual) {
+            $join->on('sale_items.product_id', '=', 'products.id')
+                ->where('sale_items.created_at', '>=', $mesActual . '-01 00:00:00')
+                ->where('sale_items.created_at', '<', now()->addMonth()->startOfMonth()->format('Y-m-d H:i:s'));
+        })
+        ->where('products.active', 1)
+        ->selectRaw('COALESCE(SUM(sale_items.qty), 0) as total_vendido')
+        ->groupBy(
+            'products.id',
+            'products.name',
+            'products.price',
+            'products.photo',
+            'products.category_id',
+            'products.active'
+        )
+        ->orderByDesc('total_vendido')   // ✅ más vendidos primero
+        ->orderBy('products.name')       // para desempatar
         ->get();
-    
-    // Cargar categorías desde la base de datos (solo las activas y con productos)
+
+    // 🏷 Categorías activas con productos activos
     $categories = \App\Models\Category::active()
         ->ordered()
         ->whereHas('products', function($query) {
             $query->where('active', true);
         })
         ->get(['id', 'name']);
-    
+
     return view('caja.index', compact('products', 'categories'));
 }
+
+
 
     /**
      * Buscar producto por código de barras
@@ -150,13 +178,27 @@ class CajaController extends Controller
                 abort(422, "PRODUCTO_VENCIDO|{$p->name}|{$expiresAt->format('d/m/Y')}");
             }
         }
+// STOCK entero (unidades). Si quisieras permitir decimales, quita el ceil().
+$qtyUnits = (int)ceil($qty);
 
-        // STOCK entero (unidades). Si quisieras permitir decimales, quita el ceil().
-        $qtyUnits = (int)ceil($qty);
-
-        if ($p->stock < $qtyUnits) {
-            abort(422, "Stock insuficiente para {$p->name} (stock: {$p->stock}, pedido: {$qtyUnits}).");
-        }
+// 👈 NUEVA LÓGICA: Verificar stock correcto según si es paquete o no
+if ($p->is_package && $p->parent_product_id && $p->units_per_package) {
+    // Es un paquete: verificar stock del producto individual
+    $parentProduct = \App\Models\Product::find($p->parent_product_id);
+    if (!$parentProduct) {
+        abort(422, "El producto individual del paquete {$p->name} no existe.");
+    }
+    
+    $unitsNeeded = $qtyUnits * $p->units_per_package;
+    if ($parentProduct->stock < $unitsNeeded) {
+        abort(422, "Stock insuficiente para {$p->name}. Necesitas {$unitsNeeded} unidades de {$parentProduct->name}, pero solo hay {$parentProduct->stock}.");
+    }
+} else {
+    // Producto normal: verificar su propio stock
+    if ($p->stock < $qtyUnits) {
+        abort(422, "Stock insuficiente para {$p->name} (stock: {$p->stock}, pedido: {$qtyUnits}).");
+    }
+}
 
         $lineTotal = round($qty * $price, 2);
 
@@ -205,7 +247,16 @@ class CajaController extends Controller
         ]);
 
         // b) Rebajar stock (entero)
-        $row['product']->update(['stock' => $row['after']]);
+$product = $row['product'];
+
+if ($product->is_package && $product->parent_product_id && $product->units_per_package) {
+    // Es un paquete: restar del producto padre
+    $unitsToDeduct = $row['qty_units'] * $product->units_per_package;
+    \App\Models\Product::whereKey($product->parent_product_id)->decrement('stock', $unitsToDeduct);
+} else {
+    // Producto normal: restar de su propio stock
+    $product->update(['stock' => $row['after']]);
+}
 
         // c) Movimiento de inventario (VENTA = salida)
         InventoryMovement::create([

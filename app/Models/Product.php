@@ -23,10 +23,31 @@ protected static function booted()
     use HasFactory;
 
     // Campos que se pueden guardar directamente
-     protected $fillable = [
-        'name', 'barcode', 'price', 'purchase_price', 'photo',
-        'expires_at', 'provider_id',     'category_id', 'stock', 'min_stock', 'active'
-    ];  
+  protected $fillable = [
+    'name', 
+    'barcode', 
+    'price', 
+    'purchase_price',
+    'cost',
+    'photo',
+    'image_path',
+    'expires_at', 
+    'provider_id', 
+    'category_id', 
+    'stock', 
+    'min_stock', 
+    'active',
+    // 👈 Campos para paquetes
+    'is_package',
+    'parent_product_id',
+    'units_per_package',
+];
+
+protected $casts = [
+    'active' => 'boolean',
+    'is_package' => 'boolean',
+    'expires_at' => 'date',
+];
 
     // Relación con movimientos de inventario
     public function movements()
@@ -75,5 +96,27 @@ public function category()
 {
     return $this->belongsTo(Category::class);
 }
+
+
+
+
+/**
+ * Relación con el producto padre (si es un paquete)
+ */
+public function parentProduct()
+{
+    return $this->belongsTo(Product::class, 'parent_product_id');
+}
+
+/**
+ * Relación inversa: paquetes que usan este producto
+ */
+public function packages()
+{
+    return $this->hasMany(Product::class, 'parent_product_id');
+}
+
+
+
 
 }

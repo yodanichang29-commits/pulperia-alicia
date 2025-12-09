@@ -383,7 +383,7 @@ class DashboardController extends Controller
             ->where('active', 1)
             ->whereNotNull('min_stock')
             ->where('min_stock', '>', 0)
-            ->whereColumn('stock', '<', 'min_stock')
+              ->whereColumn('stock', '<=', 'min_stock')
             ->select('id', 'name', 'stock', 'min_stock', 'expires_at')
             ->orderByRaw('(min_stock - stock) DESC')
             ->get();

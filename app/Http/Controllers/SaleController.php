@@ -18,28 +18,55 @@ class SaleController extends Controller
             $sale->load(['items']); // items con product_id, qty, price
 
             foreach ($sale->items as $item) {
-                $product = Product::whereKey($item->product_id)->lockForUpdate()->first();
+    $product = Product::whereKey($item->product_id)->lockForUpdate()->first();
 
-                $qtyUnits = (int)ceil((float)$item->qty); // reponemos en unidades
-                $before   = (int)$product->stock;
-                $after    = $before + $qtyUnits;
+    // 👈 NUEVA LÓGICA: Verificar si es paquete
+    if ($product->is_package && $product->parent_product_id && $product->units_per_package) {
+        // Es un paquete: restaurar al producto padre
+        $qtyUnits = (int)ceil((float)$item->qty) * (int)$product->units_per_package;
+        $parentProduct = Product::whereKey($product->parent_product_id)->lockForUpdate()->first();
+        
+        $before = (int)$parentProduct->stock;
+        $after  = $before + $qtyUnits;
+        
+        // reponer stock del producto padre
+        $parentProduct->update(['stock' => $after]);
+        
+        // movimiento inverso (ENTRADA) en el producto padre
+        InventoryMovement::create([
+            'product_id' => $parentProduct->id,
+            'type'       => 'in',
+            'qty'        => $qtyUnits,
+            'before_qty' => $before,
+            'after_qty'  => $after,
+            'reason'     => 'Anulación venta #' . $sale->id . ' (paquete: ' . $product->name . ')',
+            'sale_id'    => $sale->id,
+            'user_id'    => auth()->id(),
+            'moved_at'   => now()->toDateString(),
+        ]);
+    } else {
+        // Es producto normal: restaurar su propio stock
+        $qtyUnits = (int)ceil((float)$item->qty);
+        $before   = (int)$product->stock;
+        $after    = $before + $qtyUnits;
 
-                // reponer stock
-                $product->update(['stock' => $after]);
+        // reponer stock
+        $product->update(['stock' => $after]);
 
-                // movimiento inverso (ENTRADA)
-                InventoryMovement::create([
-                    'product_id' => $product->id,
-                    'type'       => 'in',
-                    'qty'        => $qtyUnits,      // POSITIVA
-                    'before_qty' => $before,
-                    'after_qty'  => $after,
-                    'reason'     => 'Anulación venta #' . $sale->id,
-                    'sale_id'    => $sale->id,
-                    'user_id'    => auth()->id(),
-                    'moved_at'   => now()->toDateString(),
-                ]);
-            }
+        // movimiento inverso (ENTRADA)
+        InventoryMovement::create([
+            'product_id' => $product->id,
+            'type'       => 'in',
+            'qty'        => $qtyUnits,
+            'before_qty' => $before,
+            'after_qty'  => $after,
+            'reason'     => 'Anulación venta #' . $sale->id,
+            'sale_id'    => $sale->id,
+            'user_id'    => auth()->id(),
+            'moved_at'   => now()->toDateString(),
+        ]);
+    }
+}
 
             // Si luego agregas columna status en sales, aquí la marcas 'void'
             // $sale->update(['status' => 'void']);
@@ -112,20 +139,30 @@ class SaleController extends Controller
             $saleId = $sale->id;
 
             // items + descuento de stock
-            foreach ($data['items'] as $i) {
-                $qty   = (float)$i['qty'];
-                $price = (float)$i['price'];
+foreach ($data['items'] as $i) {
+    $qty   = (float)$i['qty'];
+    $price = (float)$i['price'];
 
-                SaleItem::create([
-                    'sale_id'    => $sale->id,
-                    'product_id' => $i['id'],
-                    'qty'        => $qty,
-                    'price'      => $price,
-                    'subtotal'   => round($qty * $price, 2),
-                ]);
+    SaleItem::create([
+        'sale_id'    => $sale->id,
+        'product_id' => $i['id'],
+        'qty'        => $qty,
+        'price'      => $price,
+        'subtotal'   => round($qty * $price, 2),
+    ]);
 
-                Product::whereKey($i['id'])->decrement('stock', (int)$qty);
-            }
+    // 👈 NUEVA LÓGICA: Verificar si es paquete
+    $product = Product::find($i['id']);
+    
+    if ($product->is_package && $product->parent_product_id && $product->units_per_package) {
+        // Es un paquete: restar del producto padre
+        $unitsToDeduct = (int)$qty * (int)$product->units_per_package;
+        Product::whereKey($product->parent_product_id)->decrement('stock', $unitsToDeduct);
+    } else {
+        // Es producto normal: restar de su propio stock
+        Product::whereKey($i['id'])->decrement('stock', (int)$qty);
+    }
+}
         });
 
         return response()->json(['ok' => true, 'sale_id' => $saleId]);
