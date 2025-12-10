@@ -9,9 +9,142 @@ use App\Models\CashShift;
 use App\Models\InventoryMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\PendingSale;
+
 
 class SaleManagementController extends Controller
 {
+
+
+
+
+
+
+
+      /**
+     * ⏸️ Guardar venta en ESPERA
+     */
+    public function holdSale(Request $request)
+    {
+        $data = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id'    => 'required|integer|exists:products,id',
+             'items.*.name'     => 'nullable|string|max:255',  // 👈 nuevo
+    'items.*.category' => 'nullable',                 // 👈 nuevo
+            'items.*.qty'   => 'required|numeric|min:0.01',
+            'items.*.price' => 'required|numeric|min:0',
+            'customer_name' => 'nullable|string|max:255',
+            'notes'         => 'nullable|string|max:500',
+        ]);
+
+        $userId = $request->user()->id;
+
+        // Calcular total del carrito
+        $total = 0;
+        foreach ($data['items'] as $item) {
+            $total += $item['qty'] * $item['price'];
+        }
+
+        $pending = PendingSale::create([
+            'user_id'       => $userId,
+            'customer_name' => $data['customer_name'] ?? null,
+            'notes'         => $data['notes'] ?? null,
+            'items'         => $data['items'],
+            'total'         => $total,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Venta guardada en espera',
+            'pending_sale_id' => $pending->id,
+        ]);
+    }
+
+    /**
+     * 📋 Listar ventas en ESPERA del usuario actual
+     * (para el contador y el modal)
+     */
+    public function listPendingSales(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $pending = PendingSale::where('user_id', $userId)
+            ->latest()
+            ->get()
+            ->map(function ($sale) {
+                return [
+                    'id'            => $sale->id,
+                    'customer_name' => $sale->customer_name,
+                    'notes'         => $sale->notes,
+                    'items'         => $sale->items ?? [],
+                    'total'         => (float)$sale->total,
+                    'created_at'    => $sale->created_at,
+                ];
+            });
+
+        // Tu JS espera exactamente { pending_sales: [...] }
+        return response()->json([
+            'pending_sales' => $pending,
+        ]);
+    }
+
+    /**
+     * ▶️ Recuperar UNA venta en espera
+     * (cuando le das "Continuar" en el modal)
+     */
+    public function retrievePendingSale(Request $request, $id)
+    {
+        $userId = $request->user()->id;
+
+        $pending = PendingSale::where('user_id', $userId)->findOrFail($id);
+
+        return response()->json([
+            'ok' => true,
+            'pending_sale' => [
+                'id'            => $pending->id,
+                'customer_name' => $pending->customer_name,
+                'notes'         => $pending->notes,
+                'items'         => $pending->items ?? [],
+                'total'         => (float)$pending->total,
+                'created_at'    => $pending->created_at,
+            ],
+        ]);
+    }
+
+    /**
+     * 🗑️ Eliminar venta en espera
+     */
+    public function deletePendingSale(Request $request, $id)
+    {
+        $userId = $request->user()->id;
+
+        $pending = PendingSale::where('user_id', $userId)->findOrFail($id);
+        $pending->delete();
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Venta en espera eliminada',
+        ]);
+    }
+
+    /**
+     * ✅ Marcar como completada (ahorita solo borra el registro)
+     * La venta real la registra Caja cuando cobrás.
+     */
+    public function completePendingSale(Request $request, $id)
+    {
+        $userId = $request->user()->id;
+
+        $pending = PendingSale::where('user_id', $userId)->findOrFail($id);
+        $pending->delete();
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Venta en espera completada',
+        ]);
+    }
+
+
     /**
      * 🔍 BUSCAR VENTAS DEL TURNO ACTUAL QUE CONTENGAN UN PRODUCTO ESPECÍFICO
      * 
@@ -90,7 +223,8 @@ class SaleManagementController extends Controller
             'sale_item_id'      => 'required|integer|exists:sale_items,id',
             'qty'               => 'required|numeric|min:0.01',
             'return_reason'     => 'required|string|max:500',
-            'product_condition' => 'required|in:good,damaged',
+           'product_condition' => 'nullable',
+
         ]);
         
         $userId = $request->user()->id;
@@ -146,7 +280,8 @@ class SaleManagementController extends Controller
             ], 422);
         }
         
-        $isGoodCondition = $data['product_condition'] === 'good';
+       $isGoodCondition = true; // siempre vuelve al inventario
+
         
         try {
             // ✅ PASO 6: Procesar la devolución en una transacción
@@ -193,7 +328,7 @@ class SaleManagementController extends Controller
                     'total'            => -$lineTotal,
                        'status'           => Sale::STATUS_RETURNED, // ← Verifica que diga RETURNED
                     'original_sale_id' => $sale->id,
-                    'return_reason'    => $data['return_reason'] . ' | Condición: ' . ($isGoodCondition ? 'BUENO' : 'DAÑADO'),
+'return_reason'    => $data['return_reason'] . ' | Devolución (BUEN ESTADO)',
                     'cash_received'    => null,
                     'cash_change'      => null,
                 ]);
@@ -256,7 +391,7 @@ class SaleManagementController extends Controller
      * 
      * Esta función busca productos por nombre o código de barras
      */
-    public function suggestProducts(Request $request)
+   public function suggestProducts(Request $request)
 {
     $q = trim((string)$request->query('q', ''));
 
@@ -264,28 +399,31 @@ class SaleManagementController extends Controller
         return response()->json([]);
     }
 
-    // Buscar productos - COLUMNAS CORRECTAS según tu tabla
+    // Buscar productos por nombre o código de barras
     $products = Product::query()
-        ->where(function($query) use ($q) {
+        ->where(function ($query) use ($q) {
             $query->where('name', 'like', "%{$q}%")
                   ->orWhere('barcode', 'like', "%{$q}%");
         })
         ->orderBy('name')
         ->limit(15)
-        ->get(['id', 'name', 'price', 'barcode', 'category', 'photo']); // ← Columnas correctas
+        ->get(['id', 'name', 'price', 'barcode']);   // 👈 SOLO columnas reales
 
-    // Estructura para el frontend
-    $data = $products->map(function($p){
+    // Armar respuesta para el frontend
+    $data = $products->map(function ($p) {
         return [
             'id'       => $p->id,
             'name'     => $p->name,
-            'price'    => (float)$p->price,
+            'price'    => (float) $p->price,
             'barcode'  => $p->barcode ?? '',
-            'category' => $p->category ?? '', // ← SÍ existe
-            'image'    => $p->photo ?? null,  // ← Es 'photo', no 'image_path'
+            // Si tienes relación category() en el modelo Product
+            'category' => optional($p->category)->name,
+            // Si tienes accessor getImageUrlAttribute()
+            'image'    => $p->image_url ?? null,
         ];
     });
 
     return response()->json($data);
 }
+
 }

@@ -1,195 +1,169 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800">💰 Detalle del Movimiento</h2>
-            <a href="{{ route('cash-movements.index') }}" 
-               class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-xl font-semibold transition">
-                ← Volver a la lista
-            </a>
-        </div>
-    </x-slot>
+    <div class="py-6">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            {{-- Encabezado --}}
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">
+                        Detalle del Movimiento
+                    </h1>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Movimiento #{{ $movement->id }}
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{{ route('cash-movements.edit', $movement) }}" 
+                       class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700">
+                        ✏️ Editar
+                    </a>
+                    <a href="{{ route('cash-movements.index') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                        ← Volver
+                    </a>
+                </div>
+            </div>
 
-    <div class="p-6">
-        <div class="max-w-4xl mx-auto">
-
-            {{-- Mensaje de éxito --}}
+            {{-- Mensajes de éxito --}}
             @if(session('success'))
-                <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl">
-                    {{ session('success') }}
+                <div class="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-green-700">{{ session('success') }}</p>
+                        </div>
+                    </div>
                 </div>
             @endif
 
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            {{-- Contenido --}}
+            <div class="bg-white shadow rounded-lg overflow-hidden">
                 
-                {{-- ENCABEZADO DEL MOVIMIENTO --}}
-                <div class="p-6 border-b {{ $movement->isIngreso() ? 'bg-emerald-50' : 'bg-red-50' }}">
-                    <div class="flex items-start justify-between">
+                {{-- Tipo de movimiento (destacado) --}}
+                <div class="px-6 py-8 {{ $movement->type === 'ingreso' ? 'bg-green-50 border-l-8 border-green-500' : 'bg-red-50 border-l-8 border-red-500' }}">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <span class="text-4xl">{{ $movement->type_icon }}</span>
-                                <div>
-                                    <h3 class="text-2xl font-bold {{ $movement->isIngreso() ? 'text-emerald-800' : 'text-red-800' }}">
-                                        {{ $movement->type_label }}
-                                    </h3>
-                                    <p class="text-sm text-gray-600">{{ $movement->final_category }}</p>
-                                </div>
-                            </div>
-                            <p class="text-4xl font-black {{ $movement->isIngreso() ? 'text-emerald-700' : 'text-red-700' }} mt-2">
-                                L {{ number_format($movement->amount, 2) }}
-                            </p>
+                            @if($movement->type === 'ingreso')
+                                <h2 class="text-2xl font-bold text-green-900">🟢 Ingreso al Fondo</h2>
+                                <p class="mt-1 text-sm text-green-700">Efectivo agregado a la gaveta</p>
+                            @else
+                                <h2 class="text-2xl font-bold text-red-900">🔴 Salida de Efectivo</h2>
+                                <p class="mt-1 text-sm text-red-700">Gasto pagado desde la caja</p>
+                            @endif
                         </div>
                         <div class="text-right">
-                            <p class="text-sm text-gray-600">Fecha</p>
-                            <p class="text-lg font-semibold text-gray-800">{{ $movement->date->format('d/m/Y') }}</p>
-                            <p class="text-xs text-gray-500 mt-1">{{ $movement->date->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</p>
+                            <p class="text-4xl font-bold {{ $movement->type === 'ingreso' ? 'text-green-600' : 'text-red-600' }}">
+                                {{ $movement->type === 'ingreso' ? '+' : '-' }}L {{ number_format($movement->amount, 2) }}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                {{-- INFORMACIÓN DETALLADA --}}
-                <div class="p-6 space-y-6">
-
-                    {{-- Descripción --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500 mb-1">📝 Descripción</label>
-                        <p class="text-gray-900 text-lg">{{ $movement->description }}</p>
-                    </div>
-
-                    {{-- Grid de información --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Detalles --}}
+                <div class="px-6 py-6">
+                    <dl class="grid grid-cols-1 gap-6">
                         
-                        {{-- Tipo --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">🔄 Tipo</label>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                                {{ $movement->isIngreso() ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $movement->type_icon }} {{ $movement->type_label }}
-                            </span>
+                        {{-- Fecha --}}
+                        <div class="border-b border-gray-200 pb-4">
+                            <dt class="text-sm font-medium text-gray-500 mb-1">📅 Fecha</dt>
+                            <dd class="text-lg text-gray-900">{{ $movement->date->format('d/m/Y') }}</dd>
                         </div>
 
-                        {{-- Categoría --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">🏷️ Categoría</label>
-                            <p class="text-gray-900 font-medium">{{ $movement->final_category }}</p>
-                        </div>
+                        {{-- Categoría (solo para egresos) --}}
+                        @if($movement->type === 'egreso')
+                            <div class="border-b border-gray-200 pb-4">
+                                <dt class="text-sm font-medium text-gray-500 mb-1">📂 Categoría</dt>
+                                <dd class="text-lg text-gray-900">
+                                    {{ $movement->custom_category ?? $movement->category }}
+                                </dd>
+                            </div>
+                        @endif
 
-                        {{-- Monto --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">💵 Monto</label>
-                            <p class="text-2xl font-bold {{ $movement->isIngreso() ? 'text-emerald-700' : 'text-red-700' }}">
-                                L {{ number_format($movement->amount, 2) }}
-                            </p>
+                        {{-- Descripción --}}
+                        <div class="border-b border-gray-200 pb-4">
+                            <dt class="text-sm font-medium text-gray-500 mb-1">📝 Descripción</dt>
+                            <dd class="text-lg text-gray-900">{{ $movement->description }}</dd>
                         </div>
 
                         {{-- Método de pago --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">💳 Método de pago</label>
-                            <p class="text-gray-900 font-medium">{{ $movement->payment_method_label }}</p>
+                        <div class="border-b border-gray-200 pb-4">
+                            <dt class="text-sm font-medium text-gray-500 mb-1">💵 Método de pago</dt>
+                            <dd class="text-lg text-gray-900">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    Efectivo
+                                </span>
+                            </dd>
                         </div>
 
-                    </div>
-
-                    {{-- Comprobante --}}
-                    @if($movement->receipt_file)
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500 mb-2">📎 Comprobante</label>
-                        <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border">
-                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900">Archivo adjunto</p>
-                                <p class="text-xs text-gray-500">{{ basename($movement->receipt_file) }}</p>
+                        {{-- Turno asociado --}}
+                        @if($movement->cashShift)
+                            <div class="border-b border-gray-200 pb-4">
+                                <dt class="text-sm font-medium text-gray-500 mb-1">🔄 Turno</dt>
+                                <dd class="text-lg text-gray-900">
+                                    Turno #{{ $movement->cashShift->id }} 
+                                    <span class="text-sm text-gray-500">
+                                        ({{ $movement->cashShift->opened_at->format('d/m/Y H:i') }})
+                                    </span>
+                                </dd>
                             </div>
-                            <a href="{{ $movement->receipt_url }}" target="_blank" 
-                               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition">
-                                Ver archivo
-                            </a>
-                            <a href="{{ $movement->receipt_url }}" download
-                               class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded-lg transition">
-                                Descargar
-                            </a>
+                        @endif
+
+                        {{-- Comprobante --}}
+                        @if($movement->receipt_file)
+                            <div class="border-b border-gray-200 pb-4">
+                                <dt class="text-sm font-medium text-gray-500 mb-1">📎 Comprobante</dt>
+                                <dd class="text-lg">
+                                    <a href="{{ Storage::url($movement->receipt_file) }}" 
+                                       target="_blank"
+                                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                        📄 Ver archivo
+                                    </a>
+                                </dd>
+                            </div>
+                        @endif
+
+                        {{-- Notas --}}
+                        @if($movement->notes)
+                            <div class="border-b border-gray-200 pb-4">
+                                <dt class="text-sm font-medium text-gray-500 mb-1">📌 Notas</dt>
+                                <dd class="text-lg text-gray-900">{{ $movement->notes }}</dd>
+                            </div>
+                        @endif
+
+                        {{-- Creado por --}}
+                        <div class="border-b border-gray-200 pb-4">
+                            <dt class="text-sm font-medium text-gray-500 mb-1">👤 Registrado por</dt>
+                            <dd class="text-lg text-gray-900">
+                                {{ $movement->creator->name ?? 'Usuario desconocido' }}
+                                <span class="text-sm text-gray-500">
+                                    el {{ $movement->created_at->format('d/m/Y H:i') }}
+                                </span>
+                            </dd>
                         </div>
-                    </div>
-                    @endif
 
-                    {{-- Notas --}}
-                    @if($movement->notes)
-                    <div>
-                        <label class="block text-sm font-medium text-gray-500 mb-1">📋 Notas adicionales</label>
-                        <div class="p-4 bg-gray-50 rounded-lg border">
-                            <p class="text-gray-900 whitespace-pre-wrap">{{ $movement->notes }}</p>
-                        </div>
-                    </div>
-                    @endif
-
-                    {{-- Información de auditoría --}}
-                    <div class="border-t pt-6">
-                        <label class="block text-sm font-medium text-gray-500 mb-3">ℹ️ Información de registro</label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <p class="text-gray-500">Registrado por:</p>
-                                <p class="text-gray-900 font-medium">
-                                    {{ $movement->creator ? $movement->creator->name : 'Usuario desconocido' }}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-gray-500">Fecha de registro:</p>
-                                <p class="text-gray-900 font-medium">
-                                       {{ $movement->created_at->format('d/m/Y h:i:s A') }}
-
-                                </p>
-                            </div>
-                            @if($movement->updated_at != $movement->created_at)
-                            <div>
-                                <p class="text-gray-500">Última modificación:</p>
-                                <p class="text-gray-900 font-medium">
-                                    {{ $movement->updated_at->format('d/m/Y H:i:s') }}
-                                </p>
-                            </div>
-                            @endif
-                            <div>
-                                <p class="text-gray-500">ID del movimiento:</p>
-                                <p class="text-gray-900 font-mono">#{{ $movement->id }}</p>
-                            </div>
-                        </div>
-                    </div>
-
+                    </dl>
                 </div>
 
-                {{-- BOTONES DE ACCIÓN --}}
-                <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t">
-                    <button type="button"
-                            onclick="if(confirm('¿Estás seguro de eliminar este movimiento? Esta acción no se puede deshacer.')) { document.getElementById('delete-form').submit(); }"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition">
-                        🗑️ Eliminar
-                    </button>
-                    
-                    <div class="flex gap-3">
-                        <a href="{{ route('cash-movements.index') }}" 
-                           class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition">
-                            Volver
-                        </a>
-                        <a href="{{ route('cash-movements.edit', $movement) }}" 
-                           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition">
-                            ✏️ Editar
-                        </a>
-                    </div>
+                {{-- Botón de eliminar --}}
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                    <form action="{{ route('cash-movements.destroy', $movement) }}" 
+                          method="POST"
+                          onsubmit="return confirm('¿Estás seguro de eliminar este movimiento?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700">
+                            🗑️ Eliminar Movimiento
+                        </button>
+                    </form>
                 </div>
 
             </div>
 
-            {{-- Formulario oculto para eliminar --}}
-            <form id="delete-form" 
-                  action="{{ route('cash-movements.destroy', $movement) }}" 
-                  method="POST" 
-                  class="hidden">
-                @csrf
-                @method('DELETE')
-            </form>
-
         </div>
     </div>
-
 </x-app-layout>

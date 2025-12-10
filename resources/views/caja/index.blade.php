@@ -3,7 +3,21 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   {{-- Evitar parpadeos hasta que Alpine cargue --}}
-  <style>[x-cloak]{display:none!important}</style>
+ <style>
+  [x-cloak]{display:none!important}
+
+  /* 🔎 Subir tamaño base de TODA la app */
+  html {
+    font-size: 18px; /* antes 16px aprox */
+  }
+
+  @media (min-width: 1280px) {
+    html {
+      font-size: 19px;
+    }
+  }
+</style>
+
 
   <x-slot name="header">
     <div class="flex items-center justify-between">
@@ -480,7 +494,9 @@ window.location.href = data.redirect_url;
   </script>
   @endpush
 
-  <div x-data="pos()" x-init="init()" @close-new-client.window="openNewClient=false" class="bg-gray-100 min-h-screen py-4">
+<div x-data="pos()" x-init="init()" 
+     @close-new-client.window="openNewClient=false" 
+     class="bg-gray-100 min-h-screen py-4 text-[17px] md:text-[18px]">
 
     {{-- Categorías + búsqueda --}}
 <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-2 mb-4 px-4">
@@ -569,25 +585,43 @@ window.location.href = data.redirect_url;
           </div>
 
           <div class="max-h-[46vh] overflow-y-auto divide-y divide-gray-200">
-            <template x-if="!cart.length">
-              <div class="p-4 text-sm text-gray-500">Toca un producto para agregarlo</div>
-            </template>
+          <template x-for="(item, i) in cart" :key="item.id">
+  <div class="px-3 py-3 flex items-center gap-3 hover:bg-blue-50">
+    {{-- Cantidad --}}
+    <div class="text-lg w-12 shrink-0 text-gray-700 font-bold" x-text="item.qty + '×'"></div>
 
-            <template x-for="(item, i) in cart" :key="item.id">
-              <div class="px-3 py-2 flex items-center gap-2 hover:bg-blue-50">
-                <div class="text-xs w-10 shrink-0 text-gray-600 font-bold" x-text="item.qty + '×'"></div>
-                <div class="flex-1">
-                  <div class="text-sm font-semibold text-gray-800" x-text="item.name"></div>
-                  <div class="text-xs text-gray-500" x-text="money(item.price)"></div>
-                </div>
-                <div class="w-20 text-right font-semibold text-blue-700" x-text="money(item.qty*item.price)"></div>
-                <div class="flex gap-1 ml-2">
-                  <button class="px-2.5 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600 font-bold" @click="dec(i)">−</button>
-                  <button class="px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 font-bold" @click="inc(i)">+</button>
-                  <button class="px-2.5 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 font-bold" @click="remove(i)">×</button>
-                </div>
-              </div>
-            </template>
+    {{-- Nombre + precio unitario --}}
+    <div class="flex-1">
+      <div class="text-base md:text-lg font-semibold text-gray-900 leading-tight"
+           x-text="item.name"></div>
+      <div class="text-sm md:text-base text-gray-600"
+           x-text="money(item.price)"></div>
+    </div>
+
+    {{-- Total de la línea --}}
+    <div class="w-24 text-right text-lg md:text-xl font-bold text-blue-700"
+         x-text="money(item.qty * item.price)"></div>
+
+    {{-- Botones de acción --}}
+    <div class="flex gap-1 ml-2 shrink-0">
+      <button
+        class="px-2.5 py-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 font-bold text-base"
+        @click="dec(i)"
+      >−</button>
+
+      <button
+        class="px-2.5 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 font-bold text-base"
+        @click="inc(i)"
+      >+</button>
+
+      <button
+        class="px-2.5 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 font-bold text-base"
+        @click="remove(i)"
+      >×</button>
+    </div>
+  </div>
+</template>
+
           </div>
 
           <div class="px-4 py-4 bg-gradient-to-r from-blue-700 to-indigo-700 text-white">
@@ -790,13 +824,13 @@ window.location.href = data.redirect_url;
 
       {{-- DERECHA: Grid de productos --}}
       <div class="md:col-span-8">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+<div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           @foreach($products as $p)
             <button
             @click="add({ id: {{ $p->id }}, name: @js($p->name), price: {{ $p->price }}, cat: {{ $p->category_id ?? 'null' }} })"
 x-show="showProduct({{ $p->category_id ?? 'null' }}, @js($p->name))"
-              class="relative group rounded-2xl bg-white border border-gray-200 hover:border-blue-400 overflow-hidden text-left shadow hover:shadow-lg transition">
-
+class="relative group rounded-2xl bg-white border border-gray-200 hover:border-blue-400 
+         overflow-hidden text-left shadow hover:shadow-lg transition p-4">
 
 {{-- ✅ ETIQUETA DE MÁS VENDIDO (solo para los top 3) --}}
 
@@ -807,7 +841,8 @@ x-show="showProduct({{ $p->category_id ?? 'null' }}, @js($p->name))"
           
 
               <div class="relative rounded-2xl overflow-hidden bg-white grid place-items-center">
-                <div class="w-full h-40 md:h-44 p-2">
+               <div class="w-full h-44 md:h-52 p-3">
+
                   <img
                     src="{{ $p->image_url }}"
                     alt="{{ $p->name }}"
@@ -817,22 +852,32 @@ x-show="showProduct({{ $p->category_id ?? 'null' }}, @js($p->name))"
                   >
                 </div>
               </div>
-             <div class="p-3">
- @if($p->category)
-  <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-blue-100 text-blue-800 uppercase tracking-wide">
-    {{ is_object($p->category) ? $p->category->name : $p->category }}
-  </span>
-@else
-  <span class="inline-block text-[10px] px-2 py-0.5 rounded-full mb-1 font-semibold bg-gray-100 text-gray-600 uppercase tracking-wide">
-    Sin categoría
-  </span>
-@endif
-  
-  <div class="mt-1 h-12 font-semibold text-gray-800 leading-snug line-clamp-2">
+      <div class="p-3 space-y-2">
+
+  {{-- CATEGORÍA --}}
+  @if($p->category)
+    <span class="inline-block text-sm md:text-base px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 uppercase tracking-wide">
+      {{ is_object($p->category) ? $p->category->name : $p->category }}
+    </span>
+  @else
+    <span class="inline-block text-xs md:text-sm px-2 py-1 rounded-full font-bold bg-gray-100 text-gray-600 uppercase tracking-wide">
+      Sin categoría
+    </span>
+  @endif
+
+  {{-- NOMBRE DEL PRODUCTO (MUCHO MÁS GRANDE) --}}
+  <div class="text-xl md:text-2xl font-bold text-gray-900 leading-tight line-clamp-2">
     {{ $p->name }}
   </div>
-  <div class="mt-1 text-lg font-bold text-blue-700">L {{ number_format($p->price,2) }}</div>
+
+  {{-- PRECIO (BIEN GORDO) --}}
+  <div class="text-2xl md:text-3xl font-extrabold text-blue-700">
+    L {{ number_format($p->price,2) }}
+  </div>
+
 </div>
+
+
  
             </button>
           @endforeach
@@ -2006,15 +2051,18 @@ async checkExpiredProducts() {
                   'Accept': 'application/json',
                   'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
               },
-              body: JSON.stringify({
-                  items: posApp.cart.map(item => ({
-                      id: item.id,
-                      qty: item.qty,
-                      price: item.price
-                  })),
-                  customer_name: customerName,
-                  notes: notes
-              })
+             body: JSON.stringify({
+    items: posApp.cart.map(item => ({
+        id: item.id,
+        name: item.name,              // 👈 nombre del producto
+        qty: item.qty,
+        price: item.price,
+        category: item.cat ?? null    // 👈 categoría si la tienes
+    })),
+    customer_name: customerName,
+    notes: notes
+})
+
           });
           
           const data = await response.json();
@@ -2181,86 +2229,78 @@ async checkExpiredProducts() {
       document.getElementById('returnStep3').scrollIntoView({ behavior: 'smooth' });
   }
 
-  function updateConditionWarning() {
-      const isDamaged = document.getElementById('conditionDamaged').checked;
-      const warning = document.getElementById('conditionWarning');
-      
-      if (isDamaged) {
-          warning.classList.remove('hidden');
-      } else {
-          warning.classList.add('hidden');
-      }
-  }
+  
 
-  async function processReturn() {
-      const qty = parseFloat(document.getElementById('returnQty').value);
-      const reason = document.getElementById('returnReason').value;
-      const condition = document.querySelector('input[name="productCondition"]:checked').value;
-      
-      if (!qty || qty <= 0) {
-          alert('⚠️ Ingresa una cantidad válida');
-          return;
-      }
-      
-      if (qty > selectedSaleItemForReturn.qty) {
-          alert(`⚠️ No puedes devolver más de ${selectedSaleItemForReturn.qty}`);
-          return;
-      }
-      
-      if (!reason) {
-          alert('⚠️ Selecciona una razón');
-          return;
-      }
-      
-      const conditionText = condition === 'good' 
-          ? 'BUEN ESTADO (regresa al inventario)' 
-          : 'MAL ESTADO (NO regresa - MERMA)';
-      const total = qty * selectedSaleItemForReturn.price;
-      
-      const confirmMsg = 
-          `¿Confirmar devolución?\n\n` +
-          `Cantidad: ${qty}\n` +
-          `Total a devolver: L. ${total.toFixed(2)}\n` +
-          `Estado: ${conditionText}\n\n` +
-          `Esta acción no se puede deshacer.`;
-      
-      if (!confirm(confirmMsg)) return;
-      
-      try {
-          const response = await fetch('/sales-management/return-item', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-              },
-              body: JSON.stringify({
-                  sale_id: selectedSaleItemForReturn.sale_id,
-                  sale_item_id: selectedSaleItemForReturn.sale_item_id,
-                  qty: qty,
-                  return_reason: reason,
-                  product_condition: condition
-              })
-          });
-          
-          const data = await response.json();
-          
-          if (data.ok) {
-              alert(
-                  data.message + 
-                  '\n\nMonto devuelto: L. ' + data.amount_returned.toFixed(2)
-              );
-              
-              closeReturnModal();
-          } else {
-              alert('❌ Error: ' + data.message);
-          }
-          
-      } catch (error) {
-          console.error('Error:', error);
-          alert('❌ Error al procesar devolución');
-      }
-  }
+ async function processReturn() {
+    const qty = parseFloat(document.getElementById('returnQty').value);
+    const reason = document.getElementById('returnReason').value;
+
+    // 👇 Siempre devolvemos en BUEN ESTADO
+    const condition = 'good';
+    
+    if (!qty || qty <= 0) {
+        alert('⚠️ Ingresa una cantidad válida');
+        return;
+    }
+    
+    if (qty > selectedSaleItemForReturn.qty) {
+        alert(`⚠️ No puedes devolver más de ${selectedSaleItemForReturn.qty}`);
+        return;
+    }
+    
+    if (!reason) {
+        alert('⚠️ Selecciona una razón');
+        return;
+    }
+    
+    const conditionText = 'BUEN ESTADO (regresa al inventario)';
+    const total = qty * selectedSaleItemForReturn.price;
+    
+    const confirmMsg = 
+        `¿Confirmar devolución?\n\n` +
+        `Cantidad: ${qty}\n` +
+        `Total a devolver: L. ${total.toFixed(2)}\n` +
+        `Estado: ${conditionText}\n\n` +
+        `Esta acción no se puede deshacer.`;
+    
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+        const response = await fetch('/sales-management/return-item', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                sale_id: selectedSaleItemForReturn.sale_id,
+                sale_item_id: selectedSaleItemForReturn.sale_item_id,
+                qty: qty,
+                return_reason: reason,
+                product_condition: condition   // sigue enviando "good"
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            alert(
+                data.message + 
+                '\n\nMonto devuelto: L. ' + data.amount_returned.toFixed(2)
+            );
+            
+            closeReturnModal();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al procesar devolución');
+    }
+}
+
 
   function showReturnError(message) {
       document.getElementById('returnErrorMessage').textContent = message;
@@ -2568,53 +2608,7 @@ async function searchProductInShiftById(productId) {
                       
                   </div>
                   
-                  <div class="mt-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
-                      <label class="block text-lg font-bold text-gray-900 mb-3">
-                          ⚠️ ¿En qué estado está el producto?
-                      </label>
-                      
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <label class="flex items-center gap-3 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-white transition"
-                                 onclick="document.getElementById('conditionGood').checked = true; updateConditionWarning()">
-                              <input type="radio" 
-                                     id="conditionGood"
-                                     name="productCondition" 
-                                     value="good" 
-                                     checked
-                                     class="w-5 h-5">
-                              <div>
-                                  <div class="text-green-700 font-semibold text-lg">
-                                      ✅ BUEN ESTADO
-                                  </div>
-                                  <small class="text-gray-600">
-                                      Se puede volver a vender
-                                  </small>
-                              </div>
-                          </label>
-                          
-                          <label class="flex items-center gap-3 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-white transition"
-                                 onclick="document.getElementById('conditionDamaged').checked = true; updateConditionWarning()">
-                              <input type="radio" 
-                                     id="conditionDamaged"
-                                     name="productCondition" 
-                                     value="damaged"
-                                     class="w-5 h-5">
-                              <div>
-                                  <div class="text-red-700 font-semibold text-lg">
-                                      ❌ MAL ESTADO
-                                  </div>
-                                  <small class="text-gray-600">
-                                      No se puede vender (MERMA)
-                                  </small>
-                              </div>
-                          </label>
-                      </div>
-                      
-                      <div id="conditionWarning" class="hidden mt-3 p-3 bg-red-100 border border-red-400 rounded text-red-800">
-                          <strong>⚠️ IMPORTANTE:</strong> Este producto NO regresará al inventario. 
-                          Se registrará como PÉRDIDA/MERMA.
-                      </div>
-                  </div>
+                
                   
                   <div class="flex gap-3 mt-6">
                       <button onclick="processReturn()" 

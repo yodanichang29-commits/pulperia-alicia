@@ -27,6 +27,7 @@ class CashMovement extends Model
         'description',
         'amount',
         'payment_method',
+            'source',   
         'receipt_file',
         'notes',
         'created_by',

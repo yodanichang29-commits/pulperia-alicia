@@ -1,283 +1,218 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800">💰 Movimientos de Caja</h2>
-            <div class="flex gap-2">
-                <a href="{{ route('cash-movements.create') }}?type=ingreso" 
-                   class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-semibold transition">
-                    ✅ Nuevo Ingreso
-                </a>
-                <a href="{{ route('cash-movements.create') }}?type=egreso" 
-                   class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold transition">
-                    ❌ Nuevo Egreso
-                </a>
-            </div>
-        </div>
-    </x-slot>
-
-    <div class="p-6 space-y-6">
-
-        {{-- Mensaje de éxito --}}
-        @if(session('success'))
-            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        {{-- FILTROS --}}
-        <form method="GET" class="bg-white p-4 rounded-xl shadow">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                {{-- Fecha inicio --}}
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            {{-- Encabezado --}}
+            <div class="mb-6 flex items-center justify-between">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-                    <input type="date" name="start" value="{{ $filters['start'] }}" 
-                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    <h1 class="text-3xl font-bold text-gray-900">
+                        💵 Movimientos de Caja
+                    </h1>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Solo efectivo físico de la gaveta
+                    </p>
                 </div>
-
-                {{-- Fecha fin --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-                    <input type="date" name="end" value="{{ $filters['end'] }}" 
-                           class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                </div>
-
-                {{-- Tipo --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                    <select name="type" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        <option value="">Todos</option>
-                        <option value="ingreso" {{ $filters['type'] === 'ingreso' ? 'selected' : '' }}>✅ Ingresos</option>
-                        <option value="egreso" {{ $filters['type'] === 'egreso' ? 'selected' : '' }}>❌ Egresos</option>
-                    </select>
-                </div>
-
-                {{-- Categoría --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                    <select name="category" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        <option value="">Todas</option>
-                        @foreach($allCategories as $cat)
-                            <option value="{{ $cat }}" {{ $filters['category'] === $cat ? 'selected' : '' }}>
-                                {{ $cat }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- Método de pago --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Método</label>
-                    <select name="payment_method" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        <option value="">Todos</option>
-                        <option value="efectivo" {{ $filters['payment_method'] === 'efectivo' ? 'selected' : '' }}>Efectivo</option>
-                        <option value="transferencia" {{ $filters['payment_method'] === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
-                        <option value="tarjeta" {{ $filters['payment_method'] === 'tarjeta' ? 'selected' : '' }}>Tarjeta</option>
-                        <option value="otro" {{ $filters['payment_method'] === 'otro' ? 'selected' : '' }}>Otro</option>
-                    </select>
+                <div class="flex space-x-3">
+                    <a href="{{ route('cash-movements.create') }}" 
+                       class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700">
+                        ✅ Nuevo Movimiento
+                    </a>
                 </div>
             </div>
 
-            {{-- Botones --}}
-            <div class="flex gap-2 mt-4">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition">
-                    Filtrar
-                </button>
-                <a href="{{ route('cash-movements.index') }}" 
-                   class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-semibold transition">
-                    Limpiar
-                </a>
-            </div>
-        </form>
+            {{-- Mensajes de éxito --}}
+            @if(session('success'))
+                <div class="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-green-700">{{ session('success') }}</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
-        {{-- RESUMEN DEL PERÍODO --}}
-        <section class="bg-white p-6 rounded-xl shadow">
-            <h3 class="text-lg font-semibold mb-4">📊 Resumen del Período</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {{-- Filtros --}}
+            <div class="bg-white shadow rounded-lg p-6 mb-6">
+                <form method="GET" action="{{ route('cash-movements.index') }}">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {{-- Desde --}}
+                        <div>
+                            <label for="start" class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                            <input type="date" 
+                                   name="start" 
+                                   id="start"
+                                   value="{{ $filters['start'] }}"
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        {{-- Hasta --}}
+                        <div>
+                            <label for="end" class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                            <input type="date" 
+                                   name="end" 
+                                   id="end"
+                                   value="{{ $filters['end'] }}"
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        {{-- Tipo --}}
+                        <div>
+                            <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select name="type" 
+                                    id="type"
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Todos</option>
+                                <option value="ingreso" {{ $filters['type'] === 'ingreso' ? 'selected' : '' }}>🟢 Ingresos</option>
+                                <option value="egreso" {{ $filters['type'] === 'egreso' ? 'selected' : '' }}>🔴 Egresos</option>
+                            </select>
+                        </div>
+
+                        {{-- Categoría --}}
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                            <select name="category" 
+                                    id="category"
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Todas</option>
+                                @foreach($allCategories as $cat)
+                                    <option value="{{ $cat }}" {{ $filters['category'] === $cat ? 'selected' : '' }}>
+                                        {{ $cat }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Botones --}}
+                        <div class="flex items-end space-x-2">
+                            <button type="submit" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
+                                Filtrar
+                            </button>
+                            <a href="{{ route('cash-movements.index') }}" 
+                               class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium">
+                                Limpiar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {{-- Resumen del Período --}}
+            <div class="grid grid-cols-2 gap-6 mb-6">
                 {{-- Total Ingresos --}}
-                <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50 p-6">
-                    <p class="text-sm text-emerald-800 font-medium mb-1">✅ Total Ingresos</p>
-                    <p class="text-4xl font-black text-emerald-700">L {{ number_format($totalIngresos, 2) }}</p>
+                <div class="bg-green-50 border-l-4 border-green-400 p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-green-800 mb-1">✅ Total Ingresos</p>
+                            <p class="text-3xl font-bold text-green-900">L {{ number_format($totalIngresos, 2) }}</p>
+                        </div>
+                        <div class="text-5xl opacity-20">🟢</div>
+                    </div>
                 </div>
 
                 {{-- Total Egresos --}}
-                <div class="rounded-xl border-2 border-red-200 bg-red-50 p-6">
-                    <p class="text-sm text-red-800 font-medium mb-1">❌ Total Egresos</p>
-                    <p class="text-4xl font-black text-red-700">L {{ number_format($totalEgresos, 2) }}</p>
-                </div>
-            </div>
-        </section>
-
-        {{-- INGRESOS POR CATEGORÍA --}}
-        @if($ingresosPorCategoria->isNotEmpty())
-        <section class="bg-white p-6 rounded-xl shadow">
-            <h3 class="text-lg font-semibold mb-4">📈 Ingresos del Mes (no incluye ventas)</h3>
-            <div class="space-y-3">
-                @foreach($ingresosPorCategoria as $cat)
-                    @php
-                        $percentage = $totalIngresos > 0 ? ($cat->total / $totalIngresos) * 100 : 0;
-                    @endphp
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-medium text-gray-700">{{ $cat->cat }}</span>
-                            <span class="text-sm font-bold text-emerald-700">L {{ number_format($cat->total, 2) }} ({{ number_format($percentage, 1) }}%)</span>
+                <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-red-800 mb-1">❌ Total Egresos</p>
+                            <p class="text-3xl font-bold text-red-900">L {{ number_format($totalEgresos, 2) }}</p>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-emerald-600 h-2 rounded-full" style="width: {{ $percentage }}%"></div>
-                        </div>
-                    </div>
-                @endforeach
-                <div class="border-t pt-3 mt-3">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold text-gray-800">TOTAL INGRESOS:</span>
-                        <span class="font-bold text-emerald-700 text-lg">L {{ number_format($totalIngresos, 2) }}</span>
+                        <div class="text-5xl opacity-20">🔴</div>
                     </div>
                 </div>
             </div>
-        </section>
-        @endif
 
-        {{-- EGRESOS POR CATEGORÍA --}}
-        @if($egresosPorCategoria->isNotEmpty())
-        <section class="bg-white p-6 rounded-xl shadow">
-            <h3 class="text-lg font-semibold mb-4">📉 Egresos del Mes</h3>
-            <div class="space-y-3">
-                @foreach($egresosPorCategoria as $cat)
-                    @php
-                        $percentage = $totalEgresos > 0 ? ($cat->total / $totalEgresos) * 100 : 0;
-                    @endphp
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-medium text-gray-700">{{ $cat->cat }}</span>
-                            <span class="text-sm font-bold text-red-700">L {{ number_format($cat->total, 2) }} ({{ number_format($percentage, 1) }}%)</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-red-600 h-2 rounded-full" style="width: {{ $percentage }}%"></div>
-                        </div>
-                    </div>
-                @endforeach
-                <div class="border-t pt-3 mt-3">
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold text-gray-800">TOTAL EGRESOS:</span>
-                        <span class="font-bold text-red-700 text-lg">L {{ number_format($totalEgresos, 2) }}</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-        @endif
-
-        {{-- COMPARACIÓN MES ANTERIOR --}}
-        <section class="bg-white p-6 rounded-xl shadow">
-            <h3 class="text-lg font-semibold mb-4">📊 Comparación: Este Mes vs Mes Anterior</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {{-- Comparación Ingresos --}}
-                <div class="border rounded-lg p-4">
-                    <p class="text-sm text-gray-600 mb-2">Ingresos</p>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-2xl font-bold text-emerald-700">L {{ number_format($totalIngresos, 2) }}</span>
-                        <span class="text-sm text-gray-500">Este mes</span>
-                    </div>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-lg text-gray-600">L {{ number_format($prevIngresos, 2) }}</span>
-                        <span class="text-sm text-gray-500">Mes anterior</span>
-                    </div>
-                    @if($ingresosChange != 0)
-                        <div class="mt-2">
-                            <span class="text-sm font-semibold {{ $ingresosChange > 0 ? 'text-emerald-600' : 'text-red-600' }}">
-                                {{ $ingresosChange > 0 ? '↑' : '↓' }} {{ number_format(abs($ingresosChange), 1) }}%
-                            </span>
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Comparación Egresos --}}
-                <div class="border rounded-lg p-4">
-                    <p class="text-sm text-gray-600 mb-2">Egresos</p>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-2xl font-bold text-red-700">L {{ number_format($totalEgresos, 2) }}</span>
-                        <span class="text-sm text-gray-500">Este mes</span>
-                    </div>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-lg text-gray-600">L {{ number_format($prevEgresos, 2) }}</span>
-                        <span class="text-sm text-gray-500">Mes anterior</span>
-                    </div>
-                    @if($egresosChange != 0)
-                        <div class="mt-2">
-                            <span class="text-sm font-semibold {{ $egresosChange > 0 ? 'text-red-600' : 'text-emerald-600' }}">
-                                {{ $egresosChange > 0 ? '↑' : '↓' }} {{ number_format(abs($egresosChange), 1) }}%
-                            </span>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </section>
-
-        {{-- LISTADO DETALLADO --}}
-        <section class="bg-white rounded-xl shadow overflow-hidden">
-            <div class="p-6 border-b">
-                <h3 class="text-lg font-semibold">📋 Listado Detallado</h3>
-            </div>
-
-            @if($movements->isEmpty())
-                <div class="p-8 text-center text-gray-500">
-                    No hay movimientos registrados en este período.
-                </div>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 border-b">
+            {{-- Tabla de movimientos --}}
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                @if($movements->count() > 0)
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($movements as $movement)
                                 <tr class="hover:bg-gray-50">
+                                    {{-- Fecha --}}
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $movement->date->format('d/m/Y') }}
                                     </td>
+
+                                    {{-- Tipo --}}
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                            {{ $movement->isIngreso() ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800' }}">
-                                            {{ $movement->type_icon }} {{ $movement->type_label }}
-                                        </span>
+                                        @if($movement->type === 'ingreso')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                🟢 Ingreso
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                🔴 Egreso
+                                            </span>
+                                        @endif
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ $movement->final_category }}
+
+                                    {{-- Categoría --}}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        @if($movement->type === 'ingreso')
+                                            <span class="text-green-700 font-medium">Fondo Inicial</span>
+                                        @else
+                                            {{ $movement->custom_category ?? $movement->category }}
+                                        @endif
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ Str::limit($movement->description, 40) }}
+
+                                    {{-- Descripción --}}
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        {{ Str::limit($movement->description, 50) }}
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">
-                                        {{ $movement->payment_method_label }}
+
+                                    {{-- Monto --}}
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        @if($movement->type === 'ingreso')
+                                            <span class="text-green-600">+L {{ number_format($movement->amount, 2) }}</span>
+                                        @else
+                                            <span class="text-red-600">-L {{ number_format($movement->amount, 2) }}</span>
+                                        @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold
-                                        {{ $movement->isIngreso() ? 'text-emerald-700' : 'text-red-700' }}">
-                                        L {{ number_format($movement->amount, 2) }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+
+                                    {{-- Acciones --}}
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                         <a href="{{ route('cash-movements.show', $movement) }}" 
-                                           class="text-blue-600 hover:text-blue-800 font-medium">
+                                           class="text-blue-600 hover:text-blue-900 mr-3">
                                             Ver
+                                        </a>
+                                        <a href="{{ route('cash-movements.edit', $movement) }}" 
+                                           class="text-yellow-600 hover:text-yellow-900">
+                                           Editar
                                         </a>
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
-                </div>
 
-                {{-- Paginación --}}
-                <div class="p-4 border-t">
-                    {{ $movements->links() }}
-                </div>
-            @endif
-        </section>
+                    {{-- Paginación --}}
+                    <div class="px-6 py-4 border-t border-gray-200">
+                        {{ $movements->links() }}
+                    </div>
+                @else
+                    <div class="text-center py-12">
+                        <p class="text-gray-500 text-lg">No hay movimientos registrados</p>
+                        <p class="text-gray-400 text-sm mt-2">Comienza registrando tu primer movimiento de caja</p>
+                    </div>
+                @endif
+            </div>
 
+        </div>
     </div>
 </x-app-layout>
