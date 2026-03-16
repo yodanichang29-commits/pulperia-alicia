@@ -45,10 +45,13 @@ php artisan serve
 
 ---
 
+
+Nota:El sistem todavia no esta terminado, falta mejora
+
 ## 👨‍💻 Desarrollador
 Martin Daniel Chang Aguilera
-Sigue en proceso de mejora
 
-**Martin Danchang**  
+
+**Martin Daniel Chang Aguilera**  
 Estudiante de Informática Administrativa — UNAH  
 📧 martindanchang@gmail.com
